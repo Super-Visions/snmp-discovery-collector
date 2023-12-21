@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Default values for parameters. Do NOT alter this file, use params.local.xml instead -->
+<parameters>
+	<!-- IP Discovery Application UUID -->
+	<discovery_application_uuid>0123-4567-89AB-CDEF</discovery_application_uuid>
+
+	<!-- specify a matching system OID for which serial number detection mechanism to use -->
+	<serial_detection type="array">
+		<item>
+			<!-- HUAWEI-MIB::hwProducts -->
+			<system_oid_match>.1.3.6.1.4.1.2011.2</system_oid_match>
+			<!-- ENTITY-MIB::entPhysicalSerialNum -->
+			<serial_oid>.1.3.6.1.2.1.47.1.1.1.1.11</serial_oid>
+			<!-- get|getNextNonEmpty|getNextValidMAC -->
+			<method>getNextNonEmpty</method>
+			<use_as_serialnumber>yes</use_as_serialnumber>
+		</item>
+		<item>
+			<!-- Match all other systems -->
+			<system_oid_match>/.*/</system_oid_match>
+			<!-- IF-MIB::ifPhysAddress -->
+			<serial_oid>.1.3.6.1.2.1.2.2.1.6</serial_oid>
+			<!-- get|getNextNonEmpty|getNextValidMAC -->
+			<method>getNextValidMAC</method>
+			<use_as_serialnumber>no</use_as_serialnumber>
+		</item>
+	</serial_detection>
+
+	<!-- default status for newly discovered network devices -->
+	<default_status>implementation</default_status>
+
+	<json_placeholders>
+		<prefix/>
+		<uuid>$discovery_application_uuid$</uuid>
+		<synchro_status>implementation</synchro_status>
+		<full_load_interval>3600</full_load_interval>
+	</json_placeholders>
+</parameters>
