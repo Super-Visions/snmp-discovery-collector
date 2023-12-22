@@ -17,7 +17,9 @@ jobs:
             conf
             core
             data
+            exec.php
             toolkit
+          sparse-checkout-cone-mode: false
           path: ${{ github.repository }}
       - name: Checkout current collector
         uses: actions/checkout@v4
@@ -29,7 +31,7 @@ jobs:
           filename: ../${{ github.repository }}-${{ github.ref_name }}.zip
           path: '*'
           directory: ${{ github.repository_owner }}
-          exclusions: '*.git* */composer.json */exclude.txt */Jenkinsfile'
+          exclusions: '*.git*'
       - name: Create draft release
         uses: ncipollo/release-action@v1
         with:
