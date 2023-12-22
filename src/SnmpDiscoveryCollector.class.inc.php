@@ -439,10 +439,10 @@ SQL, $this->iApplicationID));
 				$sSerialOid = $aDetectionOption['serial_oid'];
 				
 				if ($aDetectionOption['method'] == 'get') {
-					$sSerial = $oSNMP->get($sSerialOid);
+					$sSerial = @$oSNMP->get($sSerialOid);
 					$bFound = ($sSerial !== false);
 				} else do {
-					$aResult = $oSNMP->getnext([$sSerialOid]);
+					$aResult = @$oSNMP->getnext([$sSerialOid]);
 					if (is_array($aResult)) {
 						$sSerial = current($aResult);
 						$sSerialOid = key($aResult);
