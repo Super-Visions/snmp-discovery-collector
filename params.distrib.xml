@@ -32,7 +32,7 @@
 	<json_placeholders>
 		<prefix/>
 		<uuid>$discovery_application_uuid$</uuid>
-		<synchro_status>implementation</synchro_status>
+		<synchro_status>production</synchro_status>
 		<full_load_interval>3600</full_load_interval>
 	</json_placeholders>
 </parameters>
