@@ -12,6 +12,8 @@ class SnmpDiscoveryCollector extends Collector
 	protected array $aIPAddresses = [];
 	/** @var array<int, SnmpCredentials> Cache of potential SNMP credentials */
 	protected array $aSnmpCredentials = [];
+	/** @var array<int, array{org_id: int, managementip_id: int, snmpcredentials_id: int}> */
+	protected array $aDevices = [];
 	/** @var int Number of IPs that didn't respond to any SNMP request */
 	protected int $iFailedIPs = 0;
 	
@@ -290,13 +292,14 @@ SQL, $this->iApplicationID));
 		try {
 			$oRestClient = new RestClient();
 			
-			$aResults = $oRestClient->Get('NetworkDevice', sprintf('SELECT NetworkDevice WHERE snmpcredentials_id != 0 AND managementip_id IN(%s)', implode(',', array_keys($this->aIPAddresses))), 'managementip_id,snmpcredentials_id');
+			$aResults = $oRestClient->Get('NetworkDevice', sprintf('SELECT NetworkDevice WHERE snmpcredentials_id != 0 AND managementip_id IN(%s)', implode(',', array_keys($this->aIPAddresses))), 'org_id,managementip_id,snmpcredentials_id');
 			if ($aResults['code'] != 0) {
 				throw new Exception($aResults['message'], $aResults['code']);
 			}
 			
 			if (!empty($aResults['objects'])) foreach ($aResults['objects'] as $aNetworkDevice) {
-				$this->aDeviceSnmpCredentials[(int) $aNetworkDevice['key']] = [
+				$this->aDevices[(int) $aNetworkDevice['key']] = [
+					'org_id' => (int) $aNetworkDevice['fields']['org_id'],
 					'managementip_id' => (int) $aNetworkDevice['fields']['managementip_id'],
 					'snmpcredentials_id' => (int) $aNetworkDevice['fields']['snmpcredentials_id'],
 				];
@@ -349,17 +352,27 @@ SQL, $this->iApplicationID));
 	protected function DiscoverDeviceByIP(int $iKey): ?array
 	{
 		['ip' => $sIP, 'subnet_ip' => $sSubnetIP] = $this->aIPAddresses[$iKey];
-		$aSubnet = $this->aSubnets[$sSubnetIP];
 		Utils::Log(LOG_DEBUG, sprintf('Discovering IP %s...', $sIP));
 		
+		// Prepare defaults
+		$aDefaults = [
+			'org_id' => $this->aSubnets[$sSubnetIP]['default_org_id'] ?? 0,
+			'networkdevicetype_id' => $this->aSubnets[$sSubnetIP]['default_networkdevicetype_id'] ?? 0,
+			'status' => Utils::GetConfigurationValue('default_status', 'implementation'),
+		];
+		
 		// Prepare known credentials
-		$aDeviceCredentials = [];
-		foreach ($this->aDeviceSnmpCredentials as $aDevice)  {
-			if ($aDevice['managementip_id'] == $iKey) $aDeviceCredentials[] = $aDevice['snmpcredentials_id'];
+		$aDeviceCredentials = $this->aSubnets[$sSubnetIP]['snmpcredentials_list'] ?? [];
+		foreach ($this->aDevices as $aDevice)  {
+			if ($aDevice['managementip_id'] == $iKey) {
+				array_unshift($aDeviceCredentials, $aDevice['snmpcredentials_id']);
+				$aDefaults['org_id'] = $aDevice['org_id'];
+				break;
+			}
 		}
 		
 		// Try SNMP connection with each known credential
-		foreach (array_unique(array_merge($aDeviceCredentials, $aSubnet['snmpcredentials_list'])) as $iCredentialsKey) {
+		foreach (array_unique($aDeviceCredentials) as $iCredentialsKey) {
 			$oCredentials = $this->LoadSnmpCredentials($iCredentialsKey);
 			
 			Utils::Log(LOG_DEBUG, sprintf('Trying credential %s...', $oCredentials->name));
@@ -399,12 +412,12 @@ SQL, $this->iApplicationID));
 				// Return device
 				return [
 					'primary_key' => $sPrimaryKey,
-					'org_id' => $aSubnet['default_org_id'],
+					'org_id' => $aDefaults['org_id'],
 					'name' => $sSysName,
-					'networkdevicetype_id' => $aSubnet['default_networkdevicetype_id'],
+					'networkdevicetype_id' => $aDefaults['networkdevicetype_id'],
 					'managementip_id' => $iKey,
 					'snmpcredentials_id' => $iCredentialsKey,
-					'status' => Utils::GetConfigurationValue('default_status'),
+					'status' => $aDefaults['status'],
 					'serialnumber' => $bLoadSerial ? $sSerial : null,
 					'responds_to_snmp' => 'yes',
 					'snmp_last_discovery' => date('Y-m-d H:i:s'),
