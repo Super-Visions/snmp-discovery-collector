@@ -387,8 +387,8 @@ SQL, $this->iApplicationID));
 				$sPrimaryKey = $sysObjectID . ' - ';
 				
 				// Find device serial number
-				['serial' => $sSerial, 'load' => $bLoadSerial] = static::FindDeviceSerial($oSNMP, $sysObjectID);
-				if (!is_null($sSerial)) {
+				['serial' => $sSerial, 'load' => $bLoadSerial, 'primary_key' => $bUseAsPrimaryKey] = static::FindDeviceSerial($oSNMP, $sysObjectID);
+				if (!is_null($sSerial) && $bUseAsPrimaryKey) {
 					Utils::Log(LOG_DEBUG, 'Device serial: ' . $sSerial);
 					$sPrimaryKey .= $sSerial;
 				} else $sPrimaryKey .= $sIP;
@@ -436,7 +436,7 @@ SQL, $this->iApplicationID));
 	/**
 	 * @param SNMP $oSNMP
 	 * @param string $sSysObjectID
-	 * @return array{serial: string, load: bool}|null
+	 * @return array{serial: string, load: bool, primary_key: bool}|null
 	 * @throws Exception
 	 */
 	protected static function FindDeviceSerial(SNMP $oSNMP, string $sSysObjectID): ?array
@@ -451,7 +451,8 @@ SQL, $this->iApplicationID));
 				
 				$bFound = false;
 				$sSerial = null;
-				$bLoadSerial = filter_var($aDetectionOption['use_as_serialnumber'], FILTER_VALIDATE_BOOLEAN);
+				$bLoadSerial = filter_var($aDetectionOption['use_as_serialnumber'] ?? false, FILTER_VALIDATE_BOOLEAN);
+				$bPrimaryKey = filter_var($aDetectionOption['use_as_primary_key'] ?? $bLoadSerial, FILTER_VALIDATE_BOOLEAN);
 				$sSerialOid = $aDetectionOption['serial_oid'];
 				
 				if ($aDetectionOption['method'] == 'get') {
@@ -475,7 +476,7 @@ SQL, $this->iApplicationID));
 					}
 				} while (!$bFound && substr_count($sSerialOid, $aDetectionOption['serial_oid']));
 				if ($bFound) {
-					return ['serial' => $sSerial, 'load' => $bLoadSerial];
+					return ['serial' => $sSerial, 'load' => $bLoadSerial, 'primary_key' => $bPrimaryKey];
 				}
 			}
 		}

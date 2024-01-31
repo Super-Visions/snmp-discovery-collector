@@ -14,6 +14,7 @@
 			<!-- get|getNextNonEmpty|getNextValidMAC -->
 			<method>getNextNonEmpty</method>
 			<use_as_serialnumber>yes</use_as_serialnumber>
+			<use_as_primary_key>yes</use_as_primary_key>
 		</item>
 		<item>
 			<!-- Match all other systems -->
@@ -23,6 +24,7 @@
 			<!-- get|getNextNonEmpty|getNextValidMAC -->
 			<method>getNextValidMAC</method>
 			<use_as_serialnumber>no</use_as_serialnumber>
+			<use_as_primary_key>no</use_as_primary_key>
 		</item>
 	</serial_detection>
 
