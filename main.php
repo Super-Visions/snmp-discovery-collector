@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright Copyright (C) 2023 Super-Visions
+ * @copyright 2024 Super-Visions BVBA
  * @license http://opensource.org/licenses/AGPL-3.0
  * @noinspection PhpUnhandledExceptionInspection
  */

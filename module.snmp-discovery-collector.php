@@ -1,7 +1,7 @@
 <?php
 /**
- * @copyright   2023 Super-Visions BVBA
- * @license     http://opensource.org/licenses/AGPL-3.0
+ * @copyright 2024 Super-Visions BVBA
+ * @license http://opensource.org/licenses/AGPL-3.0
  */
 
 SetupWebPage::AddModule(
