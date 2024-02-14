@@ -24,7 +24,7 @@
 			<!-- get|getNextNonEmpty|getNextValidMAC -->
 			<method>getNextValidMAC</method>
 			<use_as_serialnumber>no</use_as_serialnumber>
-			<use_as_primary_key>no</use_as_primary_key>
+			<use_as_primary_key>yes</use_as_primary_key>
 		</item>
 	</serial_detection>
 
