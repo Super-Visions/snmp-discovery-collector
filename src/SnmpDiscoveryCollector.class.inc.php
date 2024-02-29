@@ -89,7 +89,7 @@ class SnmpDiscoveryCollector extends Collector
 	}
 	
 	/**
-	 * Workaround needed until PR merged in data-collector-base
+	 * @todo Workaround needed until PR merged in data-collector-base
 	 * @link https://github.com/Combodo/itop-data-collector-base/pull/37
 	 * @param string[] $aHeaders
 	 * @return void
@@ -111,7 +111,7 @@ class SnmpDiscoveryCollector extends Collector
 	}
 	
 	/**
-	 * Workaround needed until PR merged in iTop
+	 * @todo Workaround needed until PR merged in iTop
 	 * @link https://github.com/Combodo/iTop/pull/541
 	 * @param string $sHeader
 	 * @return bool
@@ -126,7 +126,7 @@ class SnmpDiscoveryCollector extends Collector
 		])) return true;
 		
 		/**
-		 * Workaround needed until PR merged in data-collector-base
+		 * @todo Workaround needed until PR merged in data-collector-base
 		 * @link https://github.com/Combodo/itop-data-collector-base/pull/37
 		 * @example return parent::HeaderIsAllowed($sHeader);
 		 */
@@ -136,11 +136,12 @@ class SnmpDiscoveryCollector extends Collector
 	/**
 	 * Check if the given module is installed in iTop
 	 *
-	 * Workaround needed until PR merged in data-collector-base
 	 * @param string $sName Name of the module to be found
 	 * @param bool $bRequired Whether to throw exceptions when module not found
 	 * @return bool True when the given module is installed, false otherwise
 	 * @throws Exception When the module is required but could not be found
+	 *
+	 * @todo Workaround needed until PR merged in data-collector-base
 	 * @link https://github.com/Combodo/itop-data-collector-base/pull/39
 	 */
 	protected static function CheckModuleInstallation(string $sName, bool $bRequired = false): bool
