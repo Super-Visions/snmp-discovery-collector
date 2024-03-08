@@ -11,7 +11,7 @@ class SnmpDiscoveryCollector extends Collector
 	/** @var array<int, array{ip: string, subnet_ip: string}> List of all the IP addresses to discover with their subnet IP */
 	protected array $aIPAddresses = [];
 	/** @var array<int, SnmpCredentials> Cache of potential SNMP credentials */
-	protected array $aSnmpCredentials = [];
+	protected static array $aSnmpCredentials = [];
 	/** @var array<int, array{org_id: int, managementip_id: int, snmpcredentials_id: int}> */
 	protected array $aDevices = [];
 	/** @var int Number of IPs that didn't respond to any SNMP request */
@@ -315,19 +315,19 @@ SQL, $this->iApplicationID));
 	 * @return SnmpCredentials
 	 * @throws Exception
 	 */
-	protected function LoadSnmpCredentials(int $iKey): SnmpCredentials
+	protected static function LoadSnmpCredentials(int $iKey): SnmpCredentials
 	{
-		if (!isset($this->aSnmpCredentials[$iKey])) {
+		if (!isset(static::$aSnmpCredentials[$iKey])) {
 			$oRestClient = new RestClient();
 			$aResults = $oRestClient->Get('SnmpCredentials', $iKey, 'name,community,security_level,security_name,auth_protocol,auth_passphrase,priv_protocol,priv_passphrase,context_name');
 			
 			if ($aResults['code'] != 0 || empty($aResults['objects'])) throw new Exception($aResults['message'], $aResults['code']);
 			
 			$aCredentials = current($aResults['objects']);
-			$this->aSnmpCredentials[$iKey] = SnmpCredentials::fromArray($aCredentials['fields']);
+			static::$aSnmpCredentials[$iKey] = SnmpCredentials::fromArray($aCredentials['fields']);
 		}
 		
-		return $this->aSnmpCredentials[$iKey];
+		return static::$aSnmpCredentials[$iKey];
 	}
 	
 	/**
@@ -374,7 +374,7 @@ SQL, $this->iApplicationID));
 		
 		// Try SNMP connection with each known credential
 		foreach (array_unique($aDeviceCredentials) as $iCredentialsKey) {
-			$oCredentials = $this->LoadSnmpCredentials($iCredentialsKey);
+			$oCredentials = static::LoadSnmpCredentials($iCredentialsKey);
 			
 			Utils::Log(LOG_DEBUG, sprintf('Trying credential %s...', $oCredentials->name));
 			$oSNMP = static::LoadSNMPConnection($sIP, $oCredentials);
