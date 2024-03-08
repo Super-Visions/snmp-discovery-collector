@@ -58,8 +58,15 @@ class SnmpDiscoveryCollector extends Collector
 		while ($iKey = key($this->aIPAddresses)) {
 			next($this->aIPAddresses);
 			
+			[
+				'primary_key' => $iKey,
+				'ip' => $sIP,
+				'defaults' => $aDefaults,
+				'credentials' => $aDeviceCredentials,
+			] = $this->PrepareDiscoverDeviceByIP($iKey);
+			
 			// Discover IP addresses as network device
-			if ($aData = $this->DiscoverDeviceByIP($iKey)) return $aData;
+			if ($aData = static::DiscoverDeviceByIP($iKey, $sIP, $aDefaults, $aDeviceCredentials)) return $aData;
 			else $this->iFailedIPs++;
 		}
 		
@@ -330,27 +337,7 @@ SQL, $this->iApplicationID));
 		return static::$aSnmpCredentials[$iKey];
 	}
 	
-	/**
-	 * @param int $iKey ID of the IPAddress
-	 * @return array{
-	 *     primary_key: string,
-	 *     org_id: int,
-	 *     name: string,
-	 *     networkdevicetype_id: int,
-	 *     managementip_id: int,
-	 *     snmpcredentials_id: int,
-	 *     status: string,
-	 *     serialnumber: ?string,
-	 *     responds_to_snmp: 'yes',
-	 *     snmp_last_discovery: string,
-	 *     snmp_sysname: string,
-	 *     snmp_sysdescr: string,
-	 *     snmp_syscontact: string,
-	 *     snmp_syslocation: string,
-	 * }|null
-	 * @throws Exception
-	 */
-	protected function DiscoverDeviceByIP(int $iKey): ?array
+	public function PrepareDiscoverDeviceByIP(int $iKey)
 	{
 		['ip' => $sIP, 'subnet_ip' => $sSubnetIP] = $this->aIPAddresses[$iKey];
 		Utils::Log(LOG_DEBUG, sprintf('Discovering IP %s...', $sIP));
@@ -372,6 +359,36 @@ SQL, $this->iApplicationID));
 			}
 		}
 		
+		return [
+			'primary_key' => $iKey,
+			'ip' => $sIP,
+			'defaults' => $aDefaults,
+			'credentials' => array_unique($aDeviceCredentials),
+		];
+	}
+	
+	/**
+	 * @param int $iKey ID of the IPAddress
+	 * @return array{
+	 *     primary_key: string,
+	 *     org_id: int,
+	 *     name: string,
+	 *     networkdevicetype_id: int,
+	 *     managementip_id: int,
+	 *     snmpcredentials_id: int,
+	 *     status: string,
+	 *     serialnumber: ?string,
+	 *     responds_to_snmp: 'yes',
+	 *     snmp_last_discovery: string,
+	 *     snmp_sysname: string,
+	 *     snmp_sysdescr: string,
+	 *     snmp_syscontact: string,
+	 *     snmp_syslocation: string,
+	 * }|null
+	 * @throws Exception
+	 */
+	public static function DiscoverDeviceByIP(int $iKey, $sIP, $aDefaults, $aDeviceCredentials): ?array
+	{
 		// Try SNMP connection with each known credential
 		foreach (array_unique($aDeviceCredentials) as $iCredentialsKey) {
 			$oCredentials = static::LoadSnmpCredentials($iCredentialsKey);
