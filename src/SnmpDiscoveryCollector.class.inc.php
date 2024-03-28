@@ -274,7 +274,7 @@ SQL, $this->iApplicationID));
 				} else Utils::Log(LOG_DEBUG, sprintf('Skipping non responding IP %s.', $aIPAddress['fields']['ip']));
 			}
 		} catch (Exception $e) {
-			throw new Exception(sprintf('Could not load %s: %s', $sClass, $e->getMessage()));
+			throw new Exception(sprintf('Could not load %s: %s', $sClass, $e->getMessage()), 0, $e);
 		}
 		
 		return $aIPAddresses;
