@@ -214,10 +214,7 @@ class SnmpDiscoveryCollector extends Collector
 			$this->aSubnets[$aSubnet['ip']] = [
 				'default_org_id' => (int)$aSubnet['org_id'],
 				'default_networkdevicetype_id' => (int)$aSubnet['default_networkdevicetype_id'],
-				'snmpcredentials_list' => array_reduce($aSubnet['snmpcredentials_list'], function ($aCredentials, $aListItem) {
-					$aCredentials[] = (int)$aListItem['snmpcredentials_id'];
-					return $aCredentials;
-				}, []),
+				'snmpcredentials_list' => array_map(function ($aListItem) { return (int)$aListItem['snmpcredentials_id']; }, $aSubnet['snmpcredentials_list']),
 				'dhcp_range_discovery_enabled' => $aSubnet['dhcp_range_discovery_enabled'],
 			];
 			
