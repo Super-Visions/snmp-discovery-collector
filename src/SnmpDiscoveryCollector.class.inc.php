@@ -43,8 +43,7 @@ class SnmpDiscoveryCollector extends Collector
 		$this->LoadAllIPAddresses();
 		
 		// Load extra device info
-		$this->LoadDevices();
-		//$this->LoadAdditionalDevices();
+		$this->LoadAllDevices();
 		
 		return parent::Prepare();
 	}
@@ -246,7 +245,7 @@ WHERE s.snmpdiscovery_id = %d
 SQL, $this->iApplicationID));
 		
 		$this->aIPAddresses = $aIPv4Addresses + $aIPv6Addresses;
-		Utils::Log(LOG_INFO, count($this->aIPAddresses) . ' addresses to process.');
+		Utils::Log(LOG_INFO, count($this->aIPAddresses) . ' addresses to discover.');
 	}
 	
 	/**
@@ -281,30 +280,64 @@ SQL, $this->iApplicationID));
 	}
 	
 	/**
-	 * Load known devices' snmp credentials so the collector doesn't need to figure out again.
+	 * Load all known devices' snmp credentials so the collector doesn't need to figure out again.
 	 * @return void
 	 * @throws Exception
 	 */
-	protected function LoadDevices(): void
+	protected function LoadAllDevices(): void
 	{
+		// Load known devices
+		$this->aDevices = static::LoadDevices(sprintf( /** @lang SQL */ 'SELECT NetworkDevice WHERE snmpcredentials_id != 0 AND managementip_id IN(%s)', implode(',', array_keys($this->aIPAddresses))));
+		Utils::Log(LOG_INFO, count($this->aDevices) . ' already known devices.');
+		
+		try {
+			// Load additional devices
+			$aAdditionalDevices = static::LoadDevices(sprintf( /** @lang SQL */ "SELECT NetworkDevice WHERE status = 'production' AND snmpcredentials_id != 0 AND id NOT IN(%s)", implode(',', array_keys($this->aDevices))));
+			
+			// Also load IP addresses for additional devices
+			$sAdditionalIPs = implode(',', array_map(function ($aDevice) { return $aDevice['managementip_id']; }, $aAdditionalDevices));
+			$aIPv4Addresses = static::LoadIPAddresses('IPv4Address', sprintf( /** @lang SQL */ 'SELECT IPv4Address WHERE id IN(%s)', $sAdditionalIPs));
+			$aIPv6Addresses = static::LoadIPAddresses('IPv6Address', sprintf( /** @lang SQL */ 'SELECT IPv6Address WHERE id IN(%s)', $sAdditionalIPs));
+			
+			$this->aDevices += $aAdditionalDevices;
+			$this->aIPAddresses += $aIPv4Addresses + $aIPv6Addresses;
+			
+			Utils::Log(LOG_INFO, count($aIPv4Addresses + $aIPv6Addresses) . ' additional addresses to process.');
+			
+		} catch (Exception $e) {
+			throw new Exception(sprintf('Could not load additional devices: %s', $e->getMessage()), 0, $e);
+		}
+	}
+	
+	/**
+	 * Load devices by the given query.
+	 * @param string $sKeySpec The OQL to select devices to load
+	 * @return array<int, array{org_id: int, managementip_id: int, snmpcredentials_id: int}>
+	 * @throws Exception
+	 */
+	protected static function LoadDevices(string $sKeySpec): array
+	{
+		$aDevices = [];
 		try {
 			$oRestClient = new RestClient();
 			
-			$aResults = $oRestClient->Get('NetworkDevice', sprintf('SELECT NetworkDevice WHERE snmpcredentials_id != 0 AND managementip_id IN(%s)', implode(',', array_keys($this->aIPAddresses))), 'org_id,managementip_id,snmpcredentials_id');
+			$aResults = $oRestClient->Get('NetworkDevice', $sKeySpec, 'org_id,managementip_id,snmpcredentials_id');
 			if ($aResults['code'] != 0) {
 				throw new Exception($aResults['message'], $aResults['code']);
 			}
 			
 			if (!empty($aResults['objects'])) foreach ($aResults['objects'] as $aNetworkDevice) {
-				$this->aDevices[(int) $aNetworkDevice['key']] = [
+				$aDevices[(int) $aNetworkDevice['key']] = [
 					'org_id' => (int) $aNetworkDevice['fields']['org_id'],
 					'managementip_id' => (int) $aNetworkDevice['fields']['managementip_id'],
 					'snmpcredentials_id' => (int) $aNetworkDevice['fields']['snmpcredentials_id'],
 				];
 			}
 		} catch (Exception $e) {
-			throw new Exception(sprintf('Could not load device credentials: %s', $e->getMessage()));
+			throw new Exception(sprintf('Could not load devices: %s', $e->getMessage()), 0, $e);
 		}
+		
+		return $aDevices;
 	}
 	
 	/**
