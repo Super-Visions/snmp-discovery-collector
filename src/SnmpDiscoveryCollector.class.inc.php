@@ -287,12 +287,16 @@ SQL, $this->iApplicationID));
 	protected function LoadAllDevices(): void
 	{
 		// Load known devices
-		$this->aDevices = static::LoadDevices(sprintf( /** @lang SQL */ 'SELECT NetworkDevice WHERE snmpcredentials_id != 0 AND managementip_id IN(%s)', implode(',', array_keys($this->aIPAddresses))));
+		if (!empty($this->aIPAddresses)) $this->aDevices = static::LoadDevices(sprintf( /** @lang SQL */ 'SELECT NetworkDevice WHERE snmpcredentials_id != 0 AND managementip_id IN(%s)', implode(',', array_keys($this->aIPAddresses))));
 		Utils::Log(LOG_INFO, count($this->aDevices) . ' already known devices.');
 		
 		try {
+			$sAdditionalDeviceWhere = Utils::GetConfigurationValue('additional_device_where');
+			if (empty($sAdditionalDeviceWhere)) return;
+			
 			// Load additional devices
-			$aAdditionalDevices = static::LoadDevices(sprintf( /** @lang SQL */ "SELECT NetworkDevice WHERE status = 'production' AND snmpcredentials_id != 0 AND id NOT IN(%s)", implode(',', array_keys($this->aDevices))));
+			$aAdditionalDevices = static::LoadDevices(sprintf( /** @lang SQL */ "SELECT NetworkDevice WHERE %s AND snmpcredentials_id != 0 AND id NOT IN(%s)", $sAdditionalDeviceWhere, implode(',', array_keys($this->aDevices)) ?: 0));
+			if (empty($aAdditionalDevices)) return;
 			
 			// Also load IP addresses for additional devices
 			$sAdditionalIPs = implode(',', array_map(function ($aDevice) { return $aDevice['managementip_id']; }, $aAdditionalDevices));

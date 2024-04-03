@@ -39,6 +39,9 @@
 	<!-- default status for newly discovered network devices -->
 	<default_status>implementation</default_status>
 
+	<!-- additional network devices to discover -->
+	<additional_device_where>status = 'production'</additional_device_where>
+
 	<json_placeholders>
 		<prefix/>
 		<uuid>$discovery_application_uuid$</uuid>
