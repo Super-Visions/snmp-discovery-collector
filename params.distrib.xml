@@ -88,6 +88,15 @@
 			<use_as_primary_key>yes</use_as_primary_key>
 		</item>
 		<item>
+			<!-- Oscilloquartz, S.A. -->
+			<system_oid_match>.1.3.6.1.4.1.5551</system_oid_match>
+			<!-- ENTITY-MIB::entPhysicalSerialNum -->
+			<serial_oid>.1.3.6.1.2.1.47.1.1.1.1.11</serial_oid>
+			<method>getNextNonEmpty</method>
+			<use_as_serialnumber>yes</use_as_serialnumber>
+			<use_as_primary_key>yes</use_as_primary_key>
+		</item>
+		<item>
 			<!-- Match all other systems -->
 			<system_oid_match>/.*/</system_oid_match>
 			<!-- IF-MIB::ifPhysAddress -->
