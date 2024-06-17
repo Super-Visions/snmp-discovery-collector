@@ -202,14 +202,14 @@ class SnmpDiscoveryCollector extends Collector
 		$aIPv4Addresses = static::LoadIPAddresses('IPv4Address', sprintf(<<<SQL
 SELECT IPv4Address AS a
 	JOIN IPv4Subnet AS s ON a.subnet_id = s.id
-WHERE s.snmpdiscovery_id = %d
+WHERE s.snmpdiscovery_id = %d AND a.status != 'reserved'
 SQL, $this->iApplicationID));
 		
 		// Load IPv6 addresses to discover
 		$aIPv6Addresses = static::LoadIPAddresses('IPv6Address', sprintf(<<<SQL
 SELECT IPv6Address AS a
 	JOIN IPv6Subnet AS s ON a.subnet_id = s.id
-WHERE s.snmpdiscovery_id = %d
+WHERE s.snmpdiscovery_id = %d AND a.status != 'reserved'
 SQL, $this->iApplicationID));
 		
 		$this->aIPAddresses = $aIPv4Addresses + $aIPv6Addresses;
