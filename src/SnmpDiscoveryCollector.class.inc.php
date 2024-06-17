@@ -27,7 +27,7 @@ class SnmpDiscoveryCollector extends Collector
 		parent::Init();
 		
 		// Check if modules are installed
-		static::CheckModuleInstallation('sv-snmp-discovery', true);
+		Utils::CheckModuleInstallation('sv-snmp-discovery', true);
 		
 		// Load SNMP discovery application settings
 		$this->LoadApplicationSettings();
@@ -130,38 +130,6 @@ class SnmpDiscoveryCollector extends Collector
 		 * @example return parent::HeaderIsAllowed($sHeader);
 		 */
 		return array_key_exists($sHeader, $this->aFields);
-	}
-	
-	/**
-	 * Check if the given module is installed in iTop
-	 *
-	 * @param string $sName Name of the module to be found
-	 * @param bool $bRequired Whether to throw exceptions when module not found
-	 * @return bool True when the given module is installed, false otherwise
-	 * @throws Exception When the module is required but could not be found
-	 *
-	 * @todo Workaround needed until PR merged in data-collector-base
-	 * @link https://github.com/Combodo/itop-data-collector-base/pull/39
-	 */
-	protected static function CheckModuleInstallation(string $sName, bool $bRequired = false): bool
-	{
-		$oRestClient = new RestClient();
-		try {
-			$aResults = $oRestClient->Get('ModuleInstallation', ['name' => $sName], 'name,version');
-			if ($aResults['code'] != 0 || empty($aResults['objects'])) {
-				throw new Exception($aResults['message'], $aResults['code']);
-			}
-			$aObject = current($aResults['objects']);
-			Utils::Log(LOG_DEBUG, sprintf('iTop module %s version %s is installed.', $aObject['fields']['name'], $aObject['fields']['version']));
-		} catch (Exception $e) {
-			$sMessage = sprintf('%s iTop module %s is considered as not installed due to: %s', $bRequired ? 'Required' : 'Optional', $sName, $e->getMessage());
-			if ($bRequired) throw new Exception($sMessage, 0, $e);
-			else {
-				Utils::Log(LOG_INFO, $sMessage);
-				return false;
-			}
-		}
-		return true;
 	}
 	
 	/**
