@@ -114,6 +114,10 @@
 	<!-- additional network devices to discover -->
 	<additional_device_where>status = 'production'</additional_device_where>
 
+	<!-- date format in collected data -->
+	<!-- @see https://github.com/Combodo/itop-data-collector-base/pull/54 -->
+	<date_format>Y-m-d H:i:s</date_format>
+
 	<json_placeholders>
 		<prefix/>
 		<uuid>$discovery_application_uuid$</uuid>

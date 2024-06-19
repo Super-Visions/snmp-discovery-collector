@@ -423,7 +423,7 @@ SQL, $this->iApplicationID));
 					'status' => $aDefaults['status'],
 					'serialnumber' => $bLoadSerial ? $sSerial : null,
 					'responds_to_snmp' => 'yes',
-					'snmp_last_discovery' => date('Y-m-d H:i:s'),
+					'snmp_last_discovery' => date(Utils::GetConfigurationValue('date_format', 'Y-m-d H:i:s')),
 					'snmp_sysname' => $sSysName,
 					'snmp_sysdescr' => trim($sSysDescr),
 					'snmp_syscontact' => $sSysContact,
