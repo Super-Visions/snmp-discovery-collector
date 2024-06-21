@@ -27,7 +27,7 @@ class SnmpDiscoveryCollector extends Collector
 		parent::Init();
 		
 		// Check if modules are installed
-		Utils::CheckModuleInstallation('sv-snmp-discovery', true);
+		Utils::CheckModuleInstallation('sv-snmp-discovery/1.2.0', true);
 		
 		// Load SNMP discovery application settings
 		$this->LoadApplicationSettings();
@@ -122,6 +122,7 @@ class SnmpDiscoveryCollector extends Collector
 			'snmp_sysdescr',
 			'snmp_syslocation',
 			'snmp_syscontact',
+			'snmp_sysuptime',
 		])) return true;
 		
 		/**
@@ -347,8 +348,9 @@ SQL, $this->iApplicationID));
 	 *     snmp_last_discovery: string,
 	 *     snmp_sysname: string,
 	 *     snmp_sysdescr: string,
-	 *     snmp_syscontact: string,
 	 *     snmp_syslocation: string,
+	 *     snmp_syscontact: string,
+	 *     snmp_sysuptime: int,
 	 * }|null
 	 * @throws Exception
 	 */
@@ -402,11 +404,13 @@ SQL, $this->iApplicationID));
 				// Load system table info
 				[
 					'.1.3.6.1.2.1.1.1.0' => $sSysDescr,
+					'.1.3.6.1.2.1.1.3.0' => $sSysUptime,
 					'.1.3.6.1.2.1.1.4.0' => $sSysContact,
 					'.1.3.6.1.2.1.1.5.0' => $sSysName,
 					'.1.3.6.1.2.1.1.6.0' => $sSysLocation,
 				] = @$oSNMP->get([
 					/* SNMPv2-MIB::sysDescr */ '.1.3.6.1.2.1.1.1.0',
+					/* SNMPv2-MIB::sysUptime */ '1.3.6.1.2.1.1.3.0',
 					/* SNMPv2-MIB::sysContact */ '.1.3.6.1.2.1.1.4.0',
 					/* SNMPv2-MIB::sysName */ '.1.3.6.1.2.1.1.5.0',
 					/* SNMPv2-MIB::sysLocation */ '.1.3.6.1.2.1.1.6.0',
@@ -426,8 +430,9 @@ SQL, $this->iApplicationID));
 					'snmp_last_discovery' => date(Utils::GetConfigurationValue('date_format', 'Y-m-d H:i:s')),
 					'snmp_sysname' => $sSysName,
 					'snmp_sysdescr' => trim($sSysDescr),
-					'snmp_syscontact' => $sSysContact,
 					'snmp_syslocation' => $sSysLocation,
+					'snmp_syscontact' => $sSysContact,
+					'snmp_sysuptime' => (int) round($sSysUptime/100),
 				];
 			}
 		}
