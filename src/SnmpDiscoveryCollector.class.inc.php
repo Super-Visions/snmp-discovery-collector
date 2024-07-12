@@ -27,7 +27,7 @@ class SnmpDiscoveryCollector extends Collector
 		parent::Init();
 		
 		// Check if modules are installed
-		static::CheckModuleInstallation('sv-snmp-discovery', true);
+		Utils::CheckModuleInstallation('sv-snmp-discovery/1.2.0', true);
 		
 		// Load SNMP discovery application settings
 		$this->LoadApplicationSettings();
@@ -43,8 +43,7 @@ class SnmpDiscoveryCollector extends Collector
 		$this->LoadAllIPAddresses();
 		
 		// Load extra device info
-		$this->LoadDevices();
-		//$this->LoadAdditionalDevices();
+		$this->LoadAllDevices();
 		
 		return parent::Prepare();
 	}
@@ -130,6 +129,7 @@ class SnmpDiscoveryCollector extends Collector
 			'snmp_sysdescr',
 			'snmp_syslocation',
 			'snmp_syscontact',
+			'snmp_sysuptime',
 		])) return true;
 		
 		/**
@@ -138,38 +138,6 @@ class SnmpDiscoveryCollector extends Collector
 		 * @example return parent::HeaderIsAllowed($sHeader);
 		 */
 		return array_key_exists($sHeader, $this->aFields);
-	}
-	
-	/**
-	 * Check if the given module is installed in iTop
-	 *
-	 * @param string $sName Name of the module to be found
-	 * @param bool $bRequired Whether to throw exceptions when module not found
-	 * @return bool True when the given module is installed, false otherwise
-	 * @throws Exception When the module is required but could not be found
-	 *
-	 * @todo Workaround needed until PR merged in data-collector-base
-	 * @link https://github.com/Combodo/itop-data-collector-base/pull/39
-	 */
-	protected static function CheckModuleInstallation(string $sName, bool $bRequired = false): bool
-	{
-		$oRestClient = new RestClient();
-		try {
-			$aResults = $oRestClient->Get('ModuleInstallation', ['name' => $sName], 'name,version');
-			if ($aResults['code'] != 0 || empty($aResults['objects'])) {
-				throw new Exception($aResults['message'], $aResults['code']);
-			}
-			$aObject = current($aResults['objects']);
-			Utils::Log(LOG_DEBUG, sprintf('iTop module %s version %s is installed.', $aObject['fields']['name'], $aObject['fields']['version']));
-		} catch (Exception $e) {
-			$sMessage = sprintf('%s iTop module %s is considered as not installed due to: %s', $bRequired ? 'Required' : 'Optional', $sName, $e->getMessage());
-			if ($bRequired) throw new Exception($sMessage, 0, $e);
-			else {
-				Utils::Log(LOG_INFO, $sMessage);
-				return false;
-			}
-		}
-		return true;
 	}
 	
 	/**
@@ -221,10 +189,7 @@ class SnmpDiscoveryCollector extends Collector
 			$this->aSubnets[$aSubnet['ip']] = [
 				'default_org_id' => (int)$aSubnet['org_id'],
 				'default_networkdevicetype_id' => (int)$aSubnet['default_networkdevicetype_id'],
-				'snmpcredentials_list' => array_reduce($aSubnet['snmpcredentials_list'], function ($aCredentials, $aListItem) {
-					$aCredentials[] = (int)$aListItem['snmpcredentials_id'];
-					return $aCredentials;
-				}, []),
+				'snmpcredentials_list' => array_map(function ($aListItem) { return (int)$aListItem['snmpcredentials_id']; }, $aSubnet['snmpcredentials_list']),
 				'dhcp_range_discovery_enabled' => $aSubnet['dhcp_range_discovery_enabled'],
 			];
 			
@@ -245,18 +210,18 @@ class SnmpDiscoveryCollector extends Collector
 		$aIPv4Addresses = static::LoadIPAddresses('IPv4Address', sprintf(<<<SQL
 SELECT IPv4Address AS a
 	JOIN IPv4Subnet AS s ON a.subnet_id = s.id
-WHERE s.snmpdiscovery_id = %d
+WHERE s.snmpdiscovery_id = %d AND a.status != 'reserved'
 SQL, $this->iApplicationID));
 		
 		// Load IPv6 addresses to discover
 		$aIPv6Addresses = static::LoadIPAddresses('IPv6Address', sprintf(<<<SQL
 SELECT IPv6Address AS a
 	JOIN IPv6Subnet AS s ON a.subnet_id = s.id
-WHERE s.snmpdiscovery_id = %d
+WHERE s.snmpdiscovery_id = %d AND a.status != 'reserved'
 SQL, $this->iApplicationID));
 		
 		$this->aIPAddresses = $aIPv4Addresses + $aIPv6Addresses;
-		Utils::Log(LOG_INFO, count($this->aIPAddresses) . ' addresses to process.');
+		Utils::Log(LOG_INFO, count($this->aIPAddresses) . ' addresses to discover.');
 	}
 	
 	/**
@@ -284,37 +249,75 @@ SQL, $this->iApplicationID));
 				} else Utils::Log(LOG_DEBUG, sprintf('Skipping non responding IP %s.', $aIPAddress['fields']['ip']));
 			}
 		} catch (Exception $e) {
-			throw new Exception(sprintf('Could not load %s: %s', $sClass, $e->getMessage()));
+			throw new Exception(sprintf('Could not load %s: %s', $sClass, $e->getMessage()), 0, $e);
 		}
 		
 		return $aIPAddresses;
 	}
 	
 	/**
-	 * Load known devices' snmp credentials so the collector doesn't need to figure out again.
+	 * Load all known devices' snmp credentials so the collector doesn't need to figure out again.
 	 * @return void
 	 * @throws Exception
 	 */
-	protected function LoadDevices(): void
+	protected function LoadAllDevices(): void
 	{
+		// Load known devices
+		if (!empty($this->aIPAddresses)) $this->aDevices = static::LoadDevices(sprintf( /** @lang SQL */ 'SELECT NetworkDevice WHERE snmpcredentials_id != 0 AND managementip_id IN(%s)', implode(',', array_keys($this->aIPAddresses))));
+		Utils::Log(LOG_INFO, count($this->aDevices) . ' already known devices.');
+		
+		try {
+			$sAdditionalDeviceWhere = Utils::GetConfigurationValue('additional_device_where');
+			if (empty($sAdditionalDeviceWhere)) return;
+			
+			// Load additional devices
+			$aAdditionalDevices = static::LoadDevices(sprintf( /** @lang SQL */ "SELECT NetworkDevice WHERE %s AND snmpcredentials_id != 0 AND id NOT IN(%s)", $sAdditionalDeviceWhere, implode(',', array_keys($this->aDevices)) ?: 0));
+			if (empty($aAdditionalDevices)) return;
+			
+			// Also load IP addresses for additional devices
+			$sAdditionalIPs = implode(',', array_map(function ($aDevice) { return $aDevice['managementip_id']; }, $aAdditionalDevices));
+			$aIPv4Addresses = static::LoadIPAddresses('IPv4Address', sprintf( /** @lang SQL */ 'SELECT IPv4Address WHERE id IN(%s)', $sAdditionalIPs));
+			$aIPv6Addresses = static::LoadIPAddresses('IPv6Address', sprintf( /** @lang SQL */ 'SELECT IPv6Address WHERE id IN(%s)', $sAdditionalIPs));
+			
+			$this->aDevices += $aAdditionalDevices;
+			$this->aIPAddresses += $aIPv4Addresses + $aIPv6Addresses;
+			
+			Utils::Log(LOG_INFO, count($aIPv4Addresses + $aIPv6Addresses) . ' additional addresses to process.');
+			
+		} catch (Exception $e) {
+			throw new Exception(sprintf('Could not load additional devices: %s', $e->getMessage()), 0, $e);
+		}
+	}
+	
+	/**
+	 * Load devices by the given query.
+	 * @param string $sKeySpec The OQL to select devices to load
+	 * @return array<int, array{org_id: int, managementip_id: int, snmpcredentials_id: int}>
+	 * @throws Exception
+	 */
+	protected static function LoadDevices(string $sKeySpec): array
+	{
+		$aDevices = [];
 		try {
 			$oRestClient = new RestClient();
 			
-			$aResults = $oRestClient->Get('NetworkDevice', sprintf('SELECT NetworkDevice WHERE snmpcredentials_id != 0 AND managementip_id IN(%s)', implode(',', array_keys($this->aIPAddresses))), 'org_id,managementip_id,snmpcredentials_id');
+			$aResults = $oRestClient->Get('NetworkDevice', $sKeySpec, 'org_id,managementip_id,snmpcredentials_id');
 			if ($aResults['code'] != 0) {
 				throw new Exception($aResults['message'], $aResults['code']);
 			}
 			
 			if (!empty($aResults['objects'])) foreach ($aResults['objects'] as $aNetworkDevice) {
-				$this->aDevices[(int) $aNetworkDevice['key']] = [
+				$aDevices[(int) $aNetworkDevice['key']] = [
 					'org_id' => (int) $aNetworkDevice['fields']['org_id'],
 					'managementip_id' => (int) $aNetworkDevice['fields']['managementip_id'],
 					'snmpcredentials_id' => (int) $aNetworkDevice['fields']['snmpcredentials_id'],
 				];
 			}
 		} catch (Exception $e) {
-			throw new Exception(sprintf('Could not load device credentials: %s', $e->getMessage()));
+			throw new Exception(sprintf('Could not load devices: %s', $e->getMessage()), 0, $e);
 		}
+		
+		return $aDevices;
 	}
 	
 	/**
@@ -382,8 +385,9 @@ SQL, $this->iApplicationID));
 	 *     snmp_last_discovery: string,
 	 *     snmp_sysname: string,
 	 *     snmp_sysdescr: string,
-	 *     snmp_syscontact: string,
 	 *     snmp_syslocation: string,
+	 *     snmp_syscontact: string,
+	 *     snmp_sysuptime: int,
 	 * }|null
 	 * @throws Exception
 	 */
@@ -417,13 +421,15 @@ SQL, $this->iApplicationID));
 				// Load system table info
 				[
 					'.1.3.6.1.2.1.1.1.0' => $sSysDescr,
+					'.1.3.6.1.2.1.1.3.0' => $sSysUptime,
 					'.1.3.6.1.2.1.1.4.0' => $sSysContact,
 					'.1.3.6.1.2.1.1.5.0' => $sSysName,
 					'.1.3.6.1.2.1.1.6.0' => $sSysLocation,
 				] = @$oSNMP->get([
-					/* SNMPv2-MIB::sysDescr */ '.1.3.6.1.2.1.1.1.0',
-					/* SNMPv2-MIB::sysContact */ '.1.3.6.1.2.1.1.4.0',
-					/* SNMPv2-MIB::sysName */ '.1.3.6.1.2.1.1.5.0',
+					/* SNMPv2-MIB::sysDescr */    '.1.3.6.1.2.1.1.1.0',
+					/* SNMPv2-MIB::sysUptime */   '.1.3.6.1.2.1.1.3.0',
+					/* SNMPv2-MIB::sysContact */  '.1.3.6.1.2.1.1.4.0',
+					/* SNMPv2-MIB::sysName */     '.1.3.6.1.2.1.1.5.0',
 					/* SNMPv2-MIB::sysLocation */ '.1.3.6.1.2.1.1.6.0',
 				]);
 				
@@ -438,11 +444,12 @@ SQL, $this->iApplicationID));
 					'status' => $aDefaults['status'],
 					'serialnumber' => $bLoadSerial ? $sSerial : null,
 					'responds_to_snmp' => 'yes',
-					'snmp_last_discovery' => date('Y-m-d H:i:s'),
+					'snmp_last_discovery' => date(Utils::GetConfigurationValue('date_format', 'Y-m-d H:i:s')),
 					'snmp_sysname' => $sSysName,
 					'snmp_sysdescr' => trim($sSysDescr),
-					'snmp_syscontact' => $sSysContact,
 					'snmp_syslocation' => $sSysLocation,
+					'snmp_syscontact' => $sSysContact,
+					'snmp_sysuptime' => (int) round($sSysUptime/100),
 				];
 			}
 		}
