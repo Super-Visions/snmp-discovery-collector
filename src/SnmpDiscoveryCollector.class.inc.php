@@ -340,6 +340,11 @@ SQL, $this->iApplicationID));
 		return static::$aSnmpCredentials[$iKey];
 	}
 	
+	/**
+	 * @param int $iKey ID of the IPAddress
+	 * @return array{primary_key: string, ip: string, defaults: array, credentials: array}
+	 * @throws Exception
+	 */
 	public function PrepareDiscoverDeviceByIP(int $iKey)
 	{
 		['ip' => $sIP, 'subnet_ip' => $sSubnetIP] = $this->aIPAddresses[$iKey];
