@@ -5,6 +5,7 @@
  * @noinspection PhpUnhandledExceptionInspection
  */
 
+require_once(__DIR__.'/vendor/autoload.php');
 require_once(__DIR__.'/src/SnmpCredentials.class.inc.php');
 require_once(__DIR__.'/src/SnmpDiscoveryCollector.class.inc.php');
 

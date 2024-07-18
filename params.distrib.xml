@@ -118,6 +118,13 @@
 	<!-- @see https://github.com/Combodo/itop-data-collector-base/pull/54 -->
 	<date_format>Y-m-d H:i:s</date_format>
 
+	<!-- enable distributed collection -->
+	<amqp_enabled>false</amqp_enabled>
+	<amqp_host>localhost</amqp_host>
+	<amqp_port>5672</amqp_port>
+	<amqp_user>guest</amqp_user>
+	<amqp_password>guest</amqp_password>
+
 	<json_placeholders>
 		<prefix/>
 		<uuid>$discovery_application_uuid$</uuid>
