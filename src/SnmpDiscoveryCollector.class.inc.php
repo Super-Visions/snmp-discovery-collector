@@ -1,21 +1,30 @@
 <?php
+use PhpAmqpLib\Channel\AMQPChannel;
+use PhpAmqpLib\Connection\AMQPStreamConnection;
+use PhpAmqpLib\Message\AMQPMessage;
 
 class SnmpDiscoveryCollector extends Collector
 {
 	/** @var int The ID of the SNMP discovery application found with the given UUID */
 	protected int $iApplicationID;
-	/**
-	 * @var array<string, array{ default_org_id: int, default_networkdevicetype_id: int, snmpcredentials_list: int[], dhcp_range_discovery_enabled: string }> List of subnets with their configured parameters
-	 */
+	/** @var bool Whether distributed collection is enabled */
+	protected bool $bDistributed;
+	/** @var array<string, array{ default_org_id: int, default_networkdevicetype_id: int, snmpcredentials_list: int[], dhcp_range_discovery_enabled: string }> List of subnets with their configured parameters */
 	protected array $aSubnets = [];
 	/** @var array<int, array{ip: string, subnet_ip: string}> List of all the IP addresses to discover with their subnet IP */
 	protected array $aIPAddresses = [];
-	/** @var array<int, SnmpCredentials> Cache of potential SNMP credentials */
+	/** @var SnmpCredentials[] Cache of potential SNMP credentials */
 	protected static array $aSnmpCredentials = [];
 	/** @var array<int, array{org_id: int, managementip_id: int, snmpcredentials_id: int}> */
 	protected array $aDevices = [];
 	/** @var int Number of IPs that didn't respond to any SNMP request */
 	protected int $iFailedIPs = 0;
+	/** @var AMQPChannel The connected AMQP channel */
+	protected AMQPChannel $oChannel;
+	/** @var string Name of the RPC queue on AMQP */
+	protected string $sQueue;
+	/** @var AMQPMessage The message containing the result from the worker */
+	protected AMQPMessage $oResponseMessage;
 	
 	/**
 	 * @inheritDoc
@@ -31,10 +40,14 @@ class SnmpDiscoveryCollector extends Collector
 		
 		// Load SNMP discovery application settings
 		$this->LoadApplicationSettings();
+		
+		// Initiate distributed collection
+		$this->bDistributed = filter_var(Utils::GetConfigurationValue('amqp_enabled', false), FILTER_VALIDATE_BOOLEAN);
+		if ($this->bDistributed) $this->InitMessageQueue();
 	}
 	
 	/**
-	 * @return bool
+	 * @return true
 	 * @throws Exception
 	 */
 	public function Prepare(): bool
@@ -45,6 +58,9 @@ class SnmpDiscoveryCollector extends Collector
 		// Load extra device info
 		$this->LoadAllDevices();
 		
+		// Prepare distributed collection
+		if ($this->bDistributed) $this->PopulateMessageQueue();
+		
 		return parent::Prepare();
 	}
 	
@@ -54,11 +70,29 @@ class SnmpDiscoveryCollector extends Collector
 	 */
 	protected function Fetch(): array|false
 	{
+		// Collect asynchronously discovered network devices
+		while ($this->bDistributed && !empty($this->aIPAddresses))
+		{
+			// Wait until new message arrives
+			$this->oChannel->consume();
+			$sBody = $this->oResponseMessage->getBody();
+			$iKey = $this->oResponseMessage->get('correlation_id');
+			
+			// Remove IP from list
+			['ip' => $sIP] = $this->aIPAddresses[$iKey];
+			unset($this->aIPAddresses[$iKey]);
+			Utils::Log(LOG_DEBUG, sprintf('Received results for IP %s: %s', $sIP, $sBody !== 'null' ? 'OK' : 'NOK'));
+			
+			// Process results
+			if ($aData = json_decode($sBody, true)) return $aData;
+			else $this->iFailedIPs++;
+		}
+		
+		// Collect synchronously
 		while ($iKey = key($this->aIPAddresses)) {
 			next($this->aIPAddresses);
 			
 			[
-				'primary_key' => $iKey,
 				'ip' => $sIP,
 				'defaults' => $aDefaults,
 				'credentials' => $aDeviceCredentials,
@@ -73,11 +107,14 @@ class SnmpDiscoveryCollector extends Collector
 	}
 	
 	/**
+	 * Close connection and csv files.
 	 * @return void
 	 * @throws Exception
 	 */
 	protected function Cleanup(): void
 	{
+		if ($this->bDistributed) $this->oChannel->getConnection()->close();
+		
 		Utils::Log(LOG_NOTICE, $this->iFailedIPs . ' non responding devices.');
 		parent::Cleanup();
 	}
@@ -141,7 +178,7 @@ class SnmpDiscoveryCollector extends Collector
 	}
 	
 	/**
-	 * Load the SNMP discovery application settings (ID and subnet to discover)
+	 * Load the SNMP discovery application ID and subnet(s) to discover.
 	 * @return void
 	 * @throws Exception
 	 */
@@ -178,7 +215,7 @@ class SnmpDiscoveryCollector extends Collector
 	}
 	
 	/**
-	 * Prepare the subnet parameters list by the given subnet
+	 * Prepare the subnet parameters list by the given subnet.
 	 * @param array{ip: string, org_id: string, default_networkdevicetype_id: string, snmpcredentials_list: int[], dhcp_range_discovery_enabled: string} $aSubnet
 	 * @return void
 	 * @throws Exception
@@ -200,7 +237,7 @@ class SnmpDiscoveryCollector extends Collector
 	}
 	
 	/**
-	 * Load all IP addresses to discover from the subnet linked to the current SNMP discovery application
+	 * Load all IP addresses to discover from the subnet linked to the current SNMP discovery application.
 	 * @return void
 	 * @throws Exception
 	 */
@@ -225,7 +262,7 @@ SQL, $this->iApplicationID));
 	}
 	
 	/**
-	 * Load IP addresses to discover by the given class and query
+	 * Load IP addresses to discover by the given class and query.
 	 * @param 'IPv4Address'|'IPv6Address' $sClass The IP class to query
 	 * @param string $sKeySpec The OQL to select addresses to discover
 	 * @return array<int, array{ip: string, subnet_ip: string}>
@@ -341,14 +378,39 @@ SQL, $this->iApplicationID));
 	}
 	
 	/**
-	 * @param int $iKey ID of the IPAddress
-	 * @return array{primary_key: string, ip: string, defaults: array, credentials: array}
+	 * Initiate connection to AMQP server and declare the RPC queue.
+	 * @return void
 	 * @throws Exception
 	 */
-	public function PrepareDiscoverDeviceByIP(int $iKey)
+	public function InitMessageQueue(): void
+	{
+		// Connect to AMQP server
+		$oConnection = new AMQPStreamConnection(
+			Utils::GetConfigurationValue('amqp_host', 'localhost'),
+			filter_var(Utils::GetConfigurationValue('amqp_port', 5672), FILTER_VALIDATE_INT),
+			Utils::GetConfigurationValue('amqp_user', 'guest'),
+			Utils::GetConfigurationValue('amqp_password', 'guest')
+		);
+		if ($oConnection->isConnected()) Utils::Log(LOG_DEBUG, 'Connected to AMQP.');
+		
+		// Create AMQP channel
+		$this->oChannel = $oConnection->channel();
+		$this->oChannel->basic_qos(0, 1, false);
+		
+		// Declare AMQP RPC queue
+		$sUUID = Utils::GetConfigurationValue('discovery_application_uuid');
+		[$this->sQueue] = $this->oChannel->queue_declare(sprintf('%s-%s', $this->GetName(), $sUUID));
+	}
+	
+	/**
+	 * Prepare default values and list of credentials to use for device discovery.
+	 * @param int $iKey ID of the IPAddress
+	 * @return array{ip: string, defaults: array, credentials: array}
+	 * @throws Exception
+	 */
+	public function PrepareDiscoverDeviceByIP(int $iKey): array
 	{
 		['ip' => $sIP, 'subnet_ip' => $sSubnetIP] = $this->aIPAddresses[$iKey];
-		Utils::Log(LOG_DEBUG, sprintf('Discovering IP %s...', $sIP));
 		
 		// Prepare defaults
 		$aDefaults = [
@@ -368,7 +430,6 @@ SQL, $this->iApplicationID));
 		}
 		
 		return [
-			'primary_key' => $iKey,
 			'ip' => $sIP,
 			'defaults' => $aDefaults,
 			'credentials' => array_unique($aDeviceCredentials),
@@ -376,7 +437,91 @@ SQL, $this->iApplicationID));
 	}
 	
 	/**
+	 * Send all IPs to be discovered to the RPC queue.
+	 * @return void
+	 * @throws Exception
+	 */
+	protected function PopulateMessageQueue(): void
+	{
+		// Create and consume the callback queue
+		[$sCallbackQueue] = $this->oChannel->queue_declare(exclusive: true);
+		Utils::Log(LOG_DEBUG, sprintf('AMQP callback queue: %s.', $sCallbackQueue));
+		$this->oChannel->basic_consume(
+			queue: $sCallbackQueue,
+			no_ack: true,
+			callback: function (AMQPMessage $oMessage){
+				$this->oResponseMessage = $oMessage;
+				$this->oChannel->stopConsume();
+			}
+		);
+		
+		foreach (array_keys($this->aIPAddresses) as $iKey)
+		{
+			$oMessage = new AMQPMessage(
+				json_encode($this->PrepareDiscoverDeviceByIP($iKey)),
+				[
+					'content_type' => 'application/json',
+					'reply_to' => $sCallbackQueue,
+					'correlation_id' => $iKey,
+					'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
+				],
+			);
+			
+			$this->oChannel->basic_publish($oMessage, routing_key: $this->sQueue);
+		}
+	}
+	
+	/**
+	 * Start the worker by listening to the correct queue.
+	 * @return void
+	 * @throws ErrorException
+	 */
+	public function StartWorker(): void
+	{
+		$sConsumerTag = $this->oChannel->basic_consume($this->sQueue, callback: [$this, 'ProcessRequest']);
+		Utils::Log(LOG_DEBUG, sprintf('AMQP consumer tag: %s.', $sConsumerTag));
+		
+		// Start consuming
+		$this->oChannel->consume();
+	}
+	
+	/**
+	 * Process an incoming worker message.
+	 * @param AMQPMessage $oRequest
+	 * @return void
+	 * @throws Exception
+	 */
+	public function ProcessRequest(AMQPMessage $oRequest): void
+	{
+		// Unpack request payload
+		[
+			'ip' => $sIP,
+			'defaults' => $aDefaults,
+			'credentials' => $aDeviceCredentials,
+		] = json_decode($oRequest->getBody(), true);
+		$iKey = $oRequest->get('correlation_id');
+		
+		// Discover IP addresses as network device
+		$oResponse = new AMQPMessage(
+			json_encode(static::DiscoverDeviceByIP($iKey, $sIP, $aDefaults, $aDeviceCredentials)),
+			[
+				'content_type' => 'application/json',
+				'correlation_id' => $iKey,
+			]
+		);
+		
+		// Send results back
+		Utils::Log(LOG_DEBUG, sprintf('Replying to %s', $oRequest->get('reply_to')));
+		$this->oChannel->basic_publish($oResponse, routing_key: $oRequest->get('reply_to'));
+		$oRequest->ack();
+	}
+	
+	/**
+	 * Tries the list of given credentials and returns the discovered network device info.
 	 * @param int $iKey ID of the IPAddress
+	 * @param string $sIP The IP address to discover
+	 * @param array $aDefaults Some default values
+	 * @param int[] $aDeviceCredentials List of credentials to use
 	 * @return array{
 	 *     primary_key: string,
 	 *     org_id: int,
@@ -396,8 +541,10 @@ SQL, $this->iApplicationID));
 	 * }|null
 	 * @throws Exception
 	 */
-	public static function DiscoverDeviceByIP(int $iKey, $sIP, $aDefaults, $aDeviceCredentials): ?array
+	public static function DiscoverDeviceByIP(int $iKey, string $sIP, array $aDefaults, array $aDeviceCredentials): ?array
 	{
+		Utils::Log(LOG_DEBUG, sprintf('Discovering IP %s...', $sIP));
+		
 		// Try SNMP connection with each known credential
 		foreach (array_unique($aDeviceCredentials) as $iCredentialsKey) {
 			$oCredentials = static::LoadSnmpCredentials($iCredentialsKey);
@@ -471,7 +618,7 @@ SQL, $this->iApplicationID));
 	 */
 	protected static function FindDeviceSerial(SNMP $oSNMP, string $sSysObjectID): ?array
 	{
-		/** @var array $aSerialDetectionOptions */
+		/** @var array[] $aSerialDetectionOptions */
 		$aSerialDetectionOptions = Utils::GetConfigurationValue('serial_detection', []);
 		
 		foreach ($aSerialDetectionOptions as $aDetectionOption) {
