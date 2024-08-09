@@ -1,6 +1,7 @@
 <?php
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
+use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage;
 
 class SnmpDiscoveryCollector extends Collector
@@ -74,7 +75,12 @@ class SnmpDiscoveryCollector extends Collector
 		while ($this->bDistributed && !empty($this->aIPAddresses))
 		{
 			// Wait until new message arrives
-			$this->oChannel->consume();
+			try {
+				$this->oChannel->wait(timeout: 60);
+			} catch (AMQPTimeoutException $e) {
+				$this->oChannel->queue_purge($this->sQueue);
+				throw $e;
+			}
 			$sBody = $this->oResponseMessage->getBody();
 			$iKey = $this->oResponseMessage->get('correlation_id');
 			
