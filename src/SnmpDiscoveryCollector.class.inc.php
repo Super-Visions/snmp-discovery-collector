@@ -26,6 +26,8 @@ class SnmpDiscoveryCollector extends Collector
 	protected string $sQueue;
 	/** @var AMQPMessage The message containing the result from the worker */
 	protected AMQPMessage $oResponseMessage;
+	/** @var int The timestamp when the worker needs to quit */
+	protected int $iTimeout;
 	
 	/**
 	 * @inheritDoc
@@ -479,13 +481,16 @@ SQL, $this->iApplicationID));
 	
 	/**
 	 * Start the worker by listening to the correct queue.
+	 * @param int $iDuration Time in seconds until the worker stops
 	 * @return void
 	 * @throws ErrorException
 	 */
-	public function StartWorker(): void
+	public function StartWorker(int $iDuration): void
 	{
 		$sConsumerTag = $this->oChannel->basic_consume($this->sQueue, callback: [$this, 'ProcessRequest']);
 		Utils::Log(LOG_DEBUG, sprintf('AMQP consumer tag: %s.', $sConsumerTag));
+		
+		$this->iTimeout = time() + $iDuration;
 		
 		// Start consuming
 		$this->oChannel->consume();
@@ -520,6 +525,10 @@ SQL, $this->iApplicationID));
 		Utils::Log(LOG_DEBUG, sprintf('Replying to %s', $oRequest->get('reply_to')));
 		$this->oChannel->basic_publish($oResponse, routing_key: $oRequest->get('reply_to'));
 		$oRequest->ack();
+		
+		// Stop worker when duration is passed
+		if (time() >= $this->iTimeout)
+			$this->oChannel->getConnection()->close();
 	}
 	
 	/**

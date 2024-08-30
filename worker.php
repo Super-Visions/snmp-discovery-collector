@@ -15,6 +15,7 @@ require_once(__DIR__.'/main.php');
 
 try {
 	Utils::InitConsoleLogLevel();
+	$iDuration = filter_var(Utils::ReadParameter('max_duration', 14400), FILTER_VALIDATE_INT);
 	
 	if (!Orchestrator::CheckRequirements()) {
 		exit(1);
@@ -23,7 +24,7 @@ try {
 	$oCollector = new SnmpDiscoveryCollector();
 	$oCollector->InitMessageQueue();
 	
-	$oCollector->StartWorker();
+	$oCollector->StartWorker($iDuration);
 	
 } catch (Exception $e) {
 	Utils::Log(LOG_ERR, $e->getMessage());
