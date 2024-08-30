@@ -405,7 +405,7 @@ SQL, $this->iApplicationID));
 		
 		// Declare AMQP RPC queue
 		$sUUID = Utils::GetConfigurationValue('discovery_application_uuid');
-		[$this->sQueue] = $this->oChannel->queue_declare(sprintf('%s-%s', $this->GetName(), $sUUID));
+		[$this->sQueue] = $this->oChannel->queue_declare(sprintf('%s-%s', $this->GetName(), $sUUID), auto_delete: false);
 	}
 	
 	/**
