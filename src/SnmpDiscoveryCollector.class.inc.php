@@ -10,7 +10,13 @@ class SnmpDiscoveryCollector extends Collector
 	protected int $iApplicationID;
 	/** @var bool Whether distributed collection is enabled */
 	protected bool $bDistributed;
-	/** @var array<string, array{ default_org_id: int, default_networkdevicetype_id: int, snmpcredentials_list: int[], dhcp_range_discovery_enabled: string }> List of subnets with their configured parameters */
+	/** @var array<string, array{
+	 *     default_org_id: int,
+	 *     default_networkdevicetype_id: int,
+	 *     snmpcredentials_list: int[],
+	 *     dhcp_range_discovery_enabled: string,
+	 * }> List of subnets with their configured parameters
+	 */
 	protected array $aSubnets = [];
 	/** @var array<int, array{ip: string, subnet_ip: string}> List of all the IP addresses to discover with their subnet IP */
 	protected array $aIPAddresses = [];
@@ -224,7 +230,13 @@ class SnmpDiscoveryCollector extends Collector
 	
 	/**
 	 * Prepare the subnet parameters list by the given subnet.
-	 * @param array{ip: string, org_id: string, default_networkdevicetype_id: string, snmpcredentials_list: int[], dhcp_range_discovery_enabled: string} $aSubnet
+	 * @param array{
+	 *     ip: string,
+	 *     org_id: string,
+	 *     default_networkdevicetype_id: string,
+	 *     snmpcredentials_list: int[],
+	 *     dhcp_range_discovery_enabled: string,
+	 * } $aSubnet
 	 * @return void
 	 * @throws Exception
 	 */
@@ -413,7 +425,15 @@ SQL, $this->iApplicationID));
 	/**
 	 * Prepare default values and list of credentials to use for device discovery.
 	 * @param int $iKey ID of the IPAddress
-	 * @return array{ip: string, defaults: array, credentials: array}
+	 * @return array{
+	 *     ip: string,
+	 *     defaults: array{
+	 *         org_id: int,
+	 *         networkdevicetype_id: int,
+	 *         status: string,
+	 *     },
+	 *     credentials: int[],
+	 * }
 	 * @throws Exception
 	 */
 	public function PrepareDiscoverDeviceByIP(int $iKey): array

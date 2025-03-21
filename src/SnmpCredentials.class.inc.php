@@ -13,7 +13,17 @@ class SnmpCredentials
 	public string $contextName;
 	
 	/**
-	 * @param array{ name: string, community: string, security_level: ?string, security_name: string, auth_protocol: ?string, auth_passphrase: string, priv_protocol: ?string, priv_passphrase: string, context_name: string} $aSnmpCredentials
+	 * @param array{
+	 *     name: string,
+	 *     community: string,
+	 *     security_level: ?string,
+	 *     security_name: string,
+	 *     auth_protocol: ?string,
+	 *     auth_passphrase: string,
+	 *     priv_protocol: ?string,
+	 *     priv_passphrase: string,
+	 *     context_name: string,
+	 * } $aSnmpCredentials
 	 * @return static
 	 */
 	public static function fromArray(array $aSnmpCredentials): static
