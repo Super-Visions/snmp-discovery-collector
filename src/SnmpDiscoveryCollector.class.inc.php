@@ -493,6 +493,13 @@ SQL, $this->iApplicationID));
 					/* SNMPv2-MIB::sysName */     '.1.3.6.1.2.1.1.5.0',
 					/* SNMPv2-MIB::sysLocation */ '.1.3.6.1.2.1.1.6.0',
 				]);
+
+				// Do not record this device if SNMP GET failed.
+				if ($oSNMP->getErrno() !== SNMP::ERRNO_NOERROR)
+				{
+					Utils::Log(LOG_WARNING, sprintf('Skipping, SNMP GET failed: %s', $oSNMP->getError()));
+					return null;
+				}
 				
 				// Return device
 				return [
