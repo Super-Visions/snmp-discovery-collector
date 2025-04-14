@@ -150,7 +150,11 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	 */
 	protected function PrepareFetchData(array $aData): array
 	{
-		$cPrepareInterface = function ($aInterface) use ($aData) {
+		/**
+		 * Update interface `primary_key` and add fields needed for device lookup
+		 * @return array
+		 */
+		$cPrepareInterface = function (array $aInterface) use ($aData) {
 			$aInterface['primary_key'] = sprintf('%s - %d', $aData['primary_key'], $aInterface['primary_key']);
 			foreach (SnmpInterfaceCollector::DeviceLookupFields as $sField) $aInterface[$sField] = $aData[$sField];
 			return $aInterface;

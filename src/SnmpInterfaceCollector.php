@@ -67,6 +67,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 			}
 		}
 
+		// Lookup field not needed anymore after it has been used for preprocessing
 		foreach ($this->aLookupFieldPos as $iPos) unset($aLineData[$iPos]);
 	}
 
