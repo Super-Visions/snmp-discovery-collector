@@ -156,10 +156,11 @@ class SnmpDiscoveryCollector extends SnmpCollector
 			return $aInterface;
 		};
 
-		foreach (['physicalinterface_list', 'aggregatelinks_list', 'networkdevicevirtualinterfaces_list'] as $sField) {
-			static::$aDiscoveredInterfaces[$sField] += array_map($cPrepareInterface, $aData[$sField]);
-			unset($aData[$sField]);
-		}
+		foreach (['physicalinterface_list', 'aggregatelinks_list', 'networkdevicevirtualinterfaces_list'] as $sField)
+			if (isset($aData[$sField])) {
+				static::$aDiscoveredInterfaces[$sField] += array_map($cPrepareInterface, $aData[$sField]);
+				unset($aData[$sField]);
+			}
 
 		return $aData;
 	}
