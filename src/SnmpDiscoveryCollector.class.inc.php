@@ -152,6 +152,7 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	{
 		/**
 		 * Update interface `primary_key` and add fields needed for device lookup
+		 * @param array $aInterface
 		 * @return array
 		 */
 		$cPrepareInterface = function (array $aInterface) use ($aData) {
