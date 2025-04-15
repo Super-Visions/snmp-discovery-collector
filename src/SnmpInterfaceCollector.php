@@ -130,6 +130,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 					$aInterfaces['aggregatelinks_list'][] = $aInterface;
 					break;
 				default:
+					$aInterface['networkdevice_id'] = null;
 					$aInterfaces['networkdevicevirtualinterfaces_list'][] = $aInterface;
 					break;
 			}
