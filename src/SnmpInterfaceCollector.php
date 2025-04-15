@@ -126,6 +126,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 					$aInterfaces['physicalinterface_list'][] = $aInterface;
 					break;
 				case 161: // ieee8023adLag
+					$aInterface['functionalci_id'] = null;
 					$aInterfaces['aggregatelinks_list'][] = $aInterface;
 					break;
 				default:

@@ -11,8 +11,11 @@ require_once(__DIR__.'/src/SnmpCollector.php');
 require_once(__DIR__.'/src/SnmpDiscoveryCollector.class.inc.php');
 require_once(__DIR__.'/src/SnmpInterfaceCollector.php');
 require_once(__DIR__.'/src/PhysicalInterfaceCollector.php');
+require_once(__DIR__.'/src/AggregateLinkCollector.php');
 
+$iOrder = 1;
 Orchestrator::AddRequirement('8.1');
 Orchestrator::AddRequirement('8.1', 'snmp');
-Orchestrator::AddCollector(1, SnmpDiscoveryCollector::class);
-Orchestrator::AddCollector(2, PhysicalInterfaceCollector::class);
+Orchestrator::AddCollector($iOrder++, SnmpDiscoveryCollector::class);
+Orchestrator::AddCollector($iOrder++, PhysicalInterfaceCollector::class);
+Orchestrator::AddCollector($iOrder++, AggregateLinkCollector::class);
