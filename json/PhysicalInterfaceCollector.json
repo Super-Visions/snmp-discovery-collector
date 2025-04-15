@@ -1,5 +1,5 @@
 {
-  "name": "$prefix$SNMP Physical Interface Discovery - 1D3F_D967_376A_08E1",
+  "name": "$prefix$SNMP Physical Interface Discovery - $uuid$",
   "description": "SNMP Discovery v$version$",
   "status": "implementation",
   "user_id": "$synchro_user$",
