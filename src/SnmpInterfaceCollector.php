@@ -106,7 +106,10 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 				'primary_key' => $iIfIndex,
 				'name' => $ifDescr[$iIfIndex],
 				'comment' => '',
+				'macaddress' => null,
 				'interfacespeed_id' => $ifSpeed[$iIfIndex],
+				'layer2protocol_id' => null,
+				'status' => $ifAdminStatus[$iIfIndex],
 			];
 
 			if (!empty($ifName[$iIfIndex])) {
@@ -116,13 +119,13 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 			}
 
 			if (isset($ifPhysAddress[$iIfIndex])) $aInterface['macaddress'] = vsprintf('%s:%s:%s:%s:%s:%s', str_split(bin2hex($ifPhysAddress[$iIfIndex]), 2));
-			if (isset($ifAdminStatus[$iIfIndex])) $aInterface['status'] = $ifAdminStatus[$iIfIndex];
 			if (isset($ifHighSpeed[$iIfIndex])) $aInterface['interfacespeed_id'] = $ifHighSpeed[$iIfIndex] * 1000000;
 			if (isset($ifAlias[$iIfIndex])) $aInterface['comment'] .= $ifAlias[$iIfIndex];
 
 			switch ($iIfType) {
-				case 6: // ethernet-csmacd
+				case 6: // ethernetCsmacd
 					$aInterface['connectableci_id'] = null;
+					$aInterface['layer2protocol_id'] = 'Ethernet';
 					$aInterfaces['physicalinterface_list'][] = $aInterface;
 					break;
 				case 161: // ieee8023adLag
