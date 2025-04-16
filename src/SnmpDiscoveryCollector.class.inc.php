@@ -40,9 +40,9 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	 * } List of discovered interfaces to be used by other collectors
 	 */
 	public static array $aDiscoveredInterfaces = [
-		'aggregatelinks_list' => [],
-		'networkdevicevirtualinterfaces_list' => [],
-		'physicalinterface_list' => [],
+		AggregateLinkCollector::InterfaceList => [],
+		VirtualInterfaceCollector::InterfaceList => [],
+		PhysicalInterfaceCollector::InterfaceList => [],
 	];
 	
 	/**
@@ -161,7 +161,7 @@ class SnmpDiscoveryCollector extends SnmpCollector
 			return $aInterface;
 		};
 
-		foreach (['physicalinterface_list', 'aggregatelinks_list', 'networkdevicevirtualinterfaces_list'] as $sField)
+		foreach (array_keys(static::$aDiscoveredInterfaces) as $sField)
 			if (isset($aData[$sField])) {
 				static::$aDiscoveredInterfaces[$sField] += array_map($cPrepareInterface, $aData[$sField]);
 				unset($aData[$sField]);

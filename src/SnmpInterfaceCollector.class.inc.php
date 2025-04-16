@@ -12,6 +12,17 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	protected array $aLookupFieldPos = [];
 
 	/**
+	 * Retrieve and prepare interfaces discovered by SnmpDiscoveryCollector
+	 * @return true
+	 */
+	public function Prepare()
+	{
+		$this->aInterfaces = SnmpDiscoveryCollector::$aDiscoveredInterfaces[static::InterfaceList];
+
+		return parent::Prepare();
+	}
+
+	/**
 	 * @return array|false
 	 */
 	public function Fetch()
@@ -67,6 +78,8 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 			}
 		}
 
+		$this->oDeviceLookup->Lookup($aLineData, static::DeviceLookupFields, static::DeviceDestField, $iLineIndex);
+
 		// Lookup field not needed anymore after it has been used for preprocessing
 		foreach ($this->aLookupFieldPos as $iPos) unset($aLineData[$iPos]);
 	}
@@ -84,9 +97,9 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	public static function CollectInterfaces(SNMP $oSNMP)
 	{
 		$aInterfaces = [
-			'physicalinterface_list' => [],
-			'networkdevicevirtualinterfaces_list' => [],
-			'aggregatelinks_list' => [],
+			PhysicalInterfaceCollector::InterfaceList => [],
+			VirtualInterfaceCollector::InterfaceList => [],
+			AggregateLinkCollector::InterfaceList => [],
 		];
 
 		// Load from ifTable
@@ -122,23 +135,44 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 			if (isset($ifHighSpeed[$iIfIndex])) $aInterface['interfacespeed_id'] = $ifHighSpeed[$iIfIndex] * 1000000;
 			if (isset($ifAlias[$iIfIndex])) $aInterface['comment'] .= $ifAlias[$iIfIndex];
 
+			/**
+			 * @see https://www.iana.org/assignments/ianaiftype-mib/ianaiftype-mib
+			 */
 			switch ($iIfType) {
 				case 6: // ethernetCsmacd
-					$aInterface['connectableci_id'] = null;
+					$aInterface[PhysicalInterfaceCollector::DeviceDestField] = null;
 					$aInterface['layer2protocol_id'] = 'Ethernet';
-					$aInterfaces['physicalinterface_list'][] = $aInterface;
+					$aInterfaces[PhysicalInterfaceCollector::InterfaceList][] = $aInterface;
 					break;
 				case 161: // ieee8023adLag
-					$aInterface['functionalci_id'] = null;
-					$aInterfaces['aggregatelinks_list'][] = $aInterface;
+					$aInterface[AggregateLinkCollector::DeviceDestField] = null;
+					$aInterfaces[AggregateLinkCollector::InterfaceList][] = $aInterface;
 					break;
 				default:
-					$aInterface['networkdevice_id'] = null;
-					$aInterfaces['networkdevicevirtualinterfaces_list'][] = $aInterface;
+					$aInterface[VirtualInterfaceCollector::DeviceDestField] = null;
+					$aInterfaces[VirtualInterfaceCollector::InterfaceList][] = $aInterface;
 					break;
 			}
 		}
 
 		return $aInterfaces;
 	}
+}
+
+class PhysicalInterfaceCollector extends SnmpInterfaceCollector
+{
+	public const DeviceDestField = 'connectableci_id';
+	public const InterfaceList = 'physicalinterface_list';
+}
+
+class VirtualInterfaceCollector extends SnmpInterfaceCollector
+{
+	public const DeviceDestField = 'networkdevice_id';
+	public const InterfaceList = 'networkdevicevirtualinterfaces_list';
+}
+
+class AggregateLinkCollector extends SnmpInterfaceCollector
+{
+	public const DeviceDestField = 'functionalci_id';
+	public const InterfaceList = 'aggregatelinks_list';
 }

@@ -9,10 +9,7 @@ require_once(__DIR__.'/vendor/autoload.php');
 require_once(__DIR__.'/src/SnmpCredentials.class.inc.php');
 require_once(__DIR__.'/src/SnmpCollector.php');
 require_once(__DIR__.'/src/SnmpDiscoveryCollector.class.inc.php');
-require_once(__DIR__.'/src/SnmpInterfaceCollector.php');
-require_once(__DIR__.'/src/PhysicalInterfaceCollector.php');
-require_once(__DIR__.'/src/VirtualInterfaceCollector.php');
-require_once(__DIR__.'/src/AggregateLinkCollector.php');
+require_once(__DIR__.'/src/SnmpInterfaceCollector.class.inc.php');
 
 $iOrder = 1;
 Orchestrator::AddRequirement('8.1');
