@@ -15,7 +15,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	 * Retrieve and prepare interfaces discovered by SnmpDiscoveryCollector
 	 * @return true
 	 */
-	public function Prepare()
+	public function Prepare(): bool
 	{
 		$this->aInterfaces = SnmpDiscoveryCollector::$aDiscoveredInterfaces[static::InterfaceList];
 
@@ -25,7 +25,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	/**
 	 * @return array|false
 	 */
-	public function Fetch()
+	public function Fetch(): bool|array
 	{
 		$aInterface = current($this->aInterfaces);
 		next($this->aInterfaces);
@@ -48,7 +48,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	 * Interface collectors need processing to map correct NetworkDevice
 	 * @return true
 	 */
-	public function MustProcessBeforeSynchro()
+	public function MustProcessBeforeSynchro(): bool
 	{
 		return true;
 	}
@@ -57,7 +57,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	 * Init needed lookup tables
 	 * @return void
 	 */
-	public function InitProcessBeforeSynchro()
+	public function InitProcessBeforeSynchro(): void
 	{
 		$this->oDeviceLookup = new LookupTable('SELECT NetworkDevice', static::DeviceLookupFields);
 	}
@@ -68,7 +68,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	 * @param int $iLineIndex Index of the line in the current CSV file
 	 * @return void
 	 */
-	public function ProcessLineBeforeSynchro(&$aLineData, $iLineIndex)
+	public function ProcessLineBeforeSynchro(&$aLineData, $iLineIndex): void
 	{
 		if ($iLineIndex == 0) {
 			foreach ($aLineData as $iPos => $sField) {
