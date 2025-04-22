@@ -121,6 +121,9 @@
 	<amqp_user>guest</amqp_user>
 	<amqp_password>guest</amqp_password>
 
+	<!-- enable interface synchronisation -->
+	<collect_interfaces>yes</collect_interfaces>
+
 	<json_placeholders>
 		<prefix/>
 		<uuid>$discovery_application_uuid$</uuid>

@@ -94,13 +94,15 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	 * }
 	 * @throws Exception
 	 */
-	public static function CollectInterfaces(SNMP $oSNMP)
+	public static function CollectInterfaces(SNMP $oSNMP): array
 	{
 		$aInterfaces = [
 			PhysicalInterfaceCollector::InterfaceList => [],
 			VirtualInterfaceCollector::InterfaceList => [],
 			AggregateLinkCollector::InterfaceList => [],
 		];
+
+		if (!filter_var(Utils::GetConfigurationValue('collect_interfaces', false), FILTER_VALIDATE_BOOLEAN)) return $aInterfaces;
 
 		// Load from ifTable
 		$ifDescr = @$oSNMP->walk('.1.3.6.1.2.1.2.2.1.2', true);
