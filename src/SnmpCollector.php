@@ -15,7 +15,7 @@ abstract class SnmpCollector extends Collector
 		parent::Init();
 
 		// Check if modules are installed
-		Utils::CheckModuleInstallation('sv-snmp-discovery/1.2.0', true);
+		Utils::CheckModuleInstallation('sv-snmp-discovery/1.3.0', true);
 	}
 
 	/**

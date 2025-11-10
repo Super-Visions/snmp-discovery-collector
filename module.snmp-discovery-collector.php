@@ -7,6 +7,6 @@
 
 SetupWebPage::AddModule(
 	__FILE__, // Path to the current file, all other file names are relative to the directory containing this file
-	'snmp-discovery-collector/1.4.0',
+	'snmp-discovery-collector/1.5.0',
 	[]
 );
