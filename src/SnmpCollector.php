@@ -63,7 +63,7 @@ abstract class SnmpCollector extends Collector
 	 * @param string $sHeader
 	 * @return bool
 	 */
-	protected function HeaderIsAllowed(string $sHeader): bool
+	protected function HeaderIsAllowed($sHeader)
 	{
 		return array_key_exists($sHeader, $this->aFields);
 	}

@@ -37,7 +37,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	 * @param string $sHeader
 	 * @return bool
 	 */
-	public function HeaderIsAllowed(string $sHeader): bool
+	public function HeaderIsAllowed($sHeader)
 	{
 		if (in_array($sHeader, static::DeviceLookupFields)) return true;
 

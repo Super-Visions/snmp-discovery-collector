@@ -189,7 +189,7 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	 * @param string $sHeader
 	 * @return bool
 	 */
-	protected function HeaderIsAllowed(string $sHeader): bool
+	protected function HeaderIsAllowed($sHeader)
 	{
 		if (in_array($sHeader, [
 			'snmp_sysname',
