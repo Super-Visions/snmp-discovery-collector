@@ -49,10 +49,10 @@
     },
     {
       "attcode": "interfacespeed_id",
-      "update": "0",
+      "update": "1",
       "reconcile": "0",
       "update_policy": "master_locked",
-      "reconciliation_attcode": "",
+      "reconciliation_attcode": "raw",
       "finalclass": "SynchroAttExtKey"
     },
     {
@@ -68,10 +68,10 @@
     },
     {
       "attcode": "layer2protocol_id",
-      "update": "0",
+      "update": "1",
       "reconcile": "0",
       "update_policy": "master_locked",
-      "reconciliation_attcode": "",
+      "reconciliation_attcode": "name",
       "finalclass": "SynchroAttExtKey"
     },
     {
@@ -94,6 +94,14 @@
       "reconcile": "1",
       "update_policy": "master_locked",
       "finalclass": "SynchroAttribute"
+    },
+    {
+      "attcode": "networkmodule_id",
+      "update": "0",
+      "reconcile": "0",
+      "update_policy": "master_locked",
+      "reconciliation_attcode": "",
+      "finalclass": "SynchroAttExtKey"
     },
     {
       "attcode": "status",
