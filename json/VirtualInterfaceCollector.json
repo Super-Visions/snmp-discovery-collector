@@ -66,6 +66,13 @@
       "finalclass": "SynchroAttribute"
     },
     {
+      "attcode": "mtu",
+      "update": "1",
+      "reconcile": "0",
+      "update_policy": "master_locked",
+      "finalclass": "SynchroAttribute"
+    },
+    {
       "attcode": "name",
       "update": "1",
       "reconcile": "1",

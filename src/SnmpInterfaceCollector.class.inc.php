@@ -107,6 +107,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 		// Load from ifTable
 		$ifDescr = @$oSNMP->walk('.1.3.6.1.2.1.2.2.1.2', true);
 		$ifType = @$oSNMP->walk('.1.3.6.1.2.1.2.2.1.3', true);
+		$ifMtu = @$oSNMP->walk('.1.3.6.1.2.1.2.2.1.4', true);
 		$ifSpeed = @$oSNMP->walk('.1.3.6.1.2.1.2.2.1.5', true);
 		$ifPhysAddress = @$oSNMP->walk('.1.3.6.1.2.1.2.2.1.6', true);
 		$ifAdminStatus = @$oSNMP->walk('.1.3.6.1.2.1.2.2.1.7', true);
@@ -125,6 +126,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 				'interfacespeed_id' => $ifSpeed[$iIfIndex],
 				'layer2protocol_id' => null,
 				'status' => $ifAdminStatus[$iIfIndex],
+				'mtu' => null,
 			];
 
 			if (!empty($ifName[$iIfIndex])) {
@@ -136,6 +138,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 			if (isset($ifPhysAddress[$iIfIndex])) $aInterface['macaddress'] = vsprintf('%s:%s:%s:%s:%s:%s', str_split(bin2hex($ifPhysAddress[$iIfIndex]), 2));
 			if (isset($ifHighSpeed[$iIfIndex])) $aInterface['interfacespeed_id'] = $ifHighSpeed[$iIfIndex] * 1000000;
 			if (isset($ifAlias[$iIfIndex])) $aInterface['comment'] .= $ifAlias[$iIfIndex];
+			if (isset($ifMtu[$iIfIndex])) $aInterface['mtu'] = $ifMtu[$iIfIndex];
 
 			/**
 			 * @see https://www.iana.org/assignments/ianaiftype-mib/ianaiftype-mib
