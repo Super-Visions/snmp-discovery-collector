@@ -2,8 +2,6 @@
 
 abstract class SnmpInterfaceCollector extends SnmpCollector
 {
-	/** @var array List of prepared interfaces to be synchronised */
-	protected array $aInterfaces = [];
 	/** @var LookupTable Lookup table for NetworkDevice */
 	protected LookupTable $oDeviceLookup;
 	/** @var string[] Fields to be used for NetworkDevice lookup */
@@ -17,19 +15,9 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	 */
 	public function Prepare(): bool
 	{
-		$this->aInterfaces = SnmpDiscoveryCollector::$aDiscoveredInterfaces[static::InterfaceList];
+		$this->aData = SnmpDiscoveryCollector::$aDiscoveredInterfaces[static::InterfaceList];
 
 		return parent::Prepare();
-	}
-
-	/**
-	 * @return array|false
-	 */
-	public function Fetch(): bool|array
-	{
-		$aInterface = current($this->aInterfaces);
-		next($this->aInterfaces);
-		return $aInterface;
 	}
 
 	/**

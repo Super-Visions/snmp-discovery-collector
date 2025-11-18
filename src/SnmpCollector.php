@@ -5,6 +5,9 @@ abstract class SnmpCollector extends Collector
 	/** @var SnmpCredentials[] Cache of potential SNMP credentials */
 	protected static array $aSnmpCredentials = [];
 
+	/** @var array List of prepared data to be synchronised */
+	protected array $aData = [];
+
 	/**
 	 * @inheritDoc
 	 * @return void
@@ -66,6 +69,16 @@ abstract class SnmpCollector extends Collector
 	protected function HeaderIsAllowed($sHeader)
 	{
 		return array_key_exists($sHeader, $this->aFields);
+	}
+
+	/**
+	 * @return array|false
+	 */
+	public function Fetch(): bool|array
+	{
+		$aRow = current($this->aData);
+		next($this->aData);
+		return $aRow;
 	}
 
 	/**
