@@ -5,6 +5,9 @@ abstract class SnmpCollector extends Collector
 	/** @var SnmpCredentials[] Cache of potential SNMP credentials */
 	protected static array $aSnmpCredentials = [];
 
+	/** @var array List of prepared data to be synchronised */
+	protected array $aData = [];
+
 	/**
 	 * @inheritDoc
 	 * @return void
@@ -15,7 +18,7 @@ abstract class SnmpCollector extends Collector
 		parent::Init();
 
 		// Check if modules are installed
-		Utils::CheckModuleInstallation('sv-snmp-discovery/1.2.0', true);
+		Utils::CheckModuleInstallation('sv-snmp-discovery/1.3.0', true);
 	}
 
 	/**
@@ -63,9 +66,19 @@ abstract class SnmpCollector extends Collector
 	 * @param string $sHeader
 	 * @return bool
 	 */
-	protected function HeaderIsAllowed(string $sHeader): bool
+	protected function HeaderIsAllowed($sHeader)
 	{
 		return array_key_exists($sHeader, $this->aFields);
+	}
+
+	/**
+	 * @return array|false
+	 */
+	public function Fetch(): bool|array
+	{
+		$aRow = current($this->aData);
+		next($this->aData);
+		return $aRow;
 	}
 
 	/**

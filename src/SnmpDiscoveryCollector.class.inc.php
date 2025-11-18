@@ -32,6 +32,18 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	protected AMQPMessage $oResponseMessage;
 	/** @var int The timestamp when the worker needs to quit */
 	protected int $iTimeout;
+	/**
+	 * @var array{
+	 *     aggregatelinks_list: array,
+	 *     networkdevicevirtualinterfaces_list: array,
+	 *     physicalinterface_list: array,
+	 * } List of discovered interfaces to be used by other collectors
+	 */
+	public static array $aDiscoveredInterfaces = [
+		AggregateLinkCollector::InterfaceList => [],
+		VirtualInterfaceCollector::InterfaceList => [],
+		PhysicalInterfaceCollector::InterfaceList => [],
+	];
 	
 	/**
 	 * @inheritDoc
@@ -93,7 +105,7 @@ class SnmpDiscoveryCollector extends SnmpCollector
 			Utils::Log(LOG_DEBUG, sprintf('Received results for IP %s: %s', $sIP, $sBody !== 'null' ? 'OK' : 'NOK'));
 			
 			// Process results
-			if ($aData = json_decode($sBody, true)) return $aData;
+			if ($aData = json_decode($sBody, true)) return $this->PrepareFetchData($aData);
 			else $this->iFailedIPs++;
 		}
 		
@@ -108,11 +120,54 @@ class SnmpDiscoveryCollector extends SnmpCollector
 			] = $this->PrepareDiscoverDeviceByIP($iKey);
 			
 			// Discover IP addresses as network device
-			if ($aData = static::DiscoverDeviceByIP($iKey, $sIP, $aDefaults, $aDeviceCredentials)) return $aData;
+			if ($aData = static::DiscoverDeviceByIP($iKey, $sIP, $aDefaults, $aDeviceCredentials)) return $this->PrepareFetchData($aData);
 			else $this->iFailedIPs++;
 		}
 		
 		return false;
+	}
+
+	/**
+	 * Prepare the data to be returned to Fetch so it only includes allowed fields
+	 * @param array $aData
+	 * @return array{
+	 *      primary_key: string,
+	 *      org_id: int,
+	 *      name: string,
+	 *      networkdevicetype_id: int,
+	 *      managementip_id: int,
+	 *      snmpcredentials_id: int,
+	 *      status: string,
+	 *      serialnumber: ?string,
+	 *      responds_to_snmp: 'yes',
+	 *      snmp_last_discovery: string,
+	 *      snmp_sysname: string,
+	 *      snmp_sysdescr: string,
+	 *      snmp_syslocation: string,
+	 *      snmp_syscontact: string,
+	 *      snmp_sysuptime: int,
+	 *  }
+	 */
+	protected function PrepareFetchData(array $aData): array
+	{
+		/**
+		 * Update interface `primary_key` and add fields needed for device lookup
+		 * @param array $aInterface
+		 * @return array
+		 */
+		$cPrepareInterface = function (array $aInterface) use ($aData) {
+			$aInterface['primary_key'] = sprintf('%s - %d', $aData['primary_key'], $aInterface['primary_key']);
+			foreach (SnmpInterfaceCollector::DeviceLookupFields as $sField) $aInterface[$sField] = $aData[$sField];
+			return $aInterface;
+		};
+
+		foreach (array_keys(static::$aDiscoveredInterfaces) as $sField)
+			if (isset($aData[$sField])) {
+				static::$aDiscoveredInterfaces[$sField] += array_map($cPrepareInterface, $aData[$sField]);
+				unset($aData[$sField]);
+			}
+
+		return $aData;
 	}
 	
 	/**
@@ -134,7 +189,7 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	 * @param string $sHeader
 	 * @return bool
 	 */
-	protected function HeaderIsAllowed(string $sHeader): bool
+	protected function HeaderIsAllowed($sHeader)
 	{
 		if (in_array($sHeader, [
 			'snmp_sysname',
@@ -447,6 +502,9 @@ SQL, $this->iApplicationID));
 	 *     snmp_syslocation: string,
 	 *     snmp_syscontact: string,
 	 *     snmp_sysuptime: int,
+	 *     physicalinterface_list: array,
+	 *     networkdevicevirtualinterfaces_list: array,
+	 *     aggregatelinks_list: array,
 	 * }|null
 	 * @throws Exception
 	 */
@@ -518,7 +576,7 @@ SQL, $this->iApplicationID));
 					'snmp_syslocation' => $sSysLocation,
 					'snmp_syscontact' => $sSysContact,
 					'snmp_sysuptime' => (int) round($sSysUptime/100),
-				];
+				] + SnmpInterfaceCollector::CollectInterfaces($oSNMP);
 			}
 		}
 		
