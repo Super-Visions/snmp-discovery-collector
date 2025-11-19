@@ -74,7 +74,7 @@ abstract class SnmpCollector extends Collector
 	/**
 	 * @return array|false
 	 */
-	public function Fetch(): bool|array
+	protected function Fetch(): bool|array
 	{
 		$aRow = current($this->aData);
 		next($this->aData);
