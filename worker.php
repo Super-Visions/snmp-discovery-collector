@@ -23,6 +23,7 @@ try {
 	
 	$oCollector = new SnmpDiscoveryCollector();
 	$oCollector->InitMessageQueue();
+	$oCollector->InitMappingTables();
 	
 	$oCollector->StartWorker($iDuration);
 	
