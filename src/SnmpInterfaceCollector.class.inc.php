@@ -113,7 +113,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 				'macaddress' => null,
 				'interfacespeed_id' => $ifSpeed[$iIfIndex],
 				'layer2protocol_id' => null,
-				'status' => $ifAdminStatus[$iIfIndex],
+				'status' => null,
 				'mtu' => null,
 			];
 
@@ -123,10 +123,14 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 				if ($ifName[$iIfIndex] != $ifDescr[$iIfIndex]) $aInterface['comment'] = $ifDescr[$iIfIndex].PHP_EOL;
 			}
 
-			if (isset($ifPhysAddress[$iIfIndex])) $aInterface['macaddress'] = vsprintf('%s:%s:%s:%s:%s:%s', str_split(bin2hex($ifPhysAddress[$iIfIndex]), 2));
+			if (isset($ifAdminStatus[$iIfIndex])) $aInterface['status'] = $ifAdminStatus[$iIfIndex];
+			if (isset($ifPhysAddress[$iIfIndex]) && strlen($ifPhysAddress[$iIfIndex]) == 6)
+				$aInterface['macaddress'] = vsprintf('%s:%s:%s:%s:%s:%s', str_split(bin2hex($ifPhysAddress[$iIfIndex]), 2));
 			if (isset($ifHighSpeed[$iIfIndex])) $aInterface['interfacespeed_id'] = $ifHighSpeed[$iIfIndex] * 1000000;
 			if (isset($ifAlias[$iIfIndex])) $aInterface['comment'] .= $ifAlias[$iIfIndex];
 			if (isset($ifMtu[$iIfIndex])) $aInterface['mtu'] = $ifMtu[$iIfIndex];
+
+			$aInterface['comment'] = trim($aInterface['comment']);
 
 			/**
 			 * @see https://www.iana.org/assignments/ianaiftype-mib/ianaiftype-mib

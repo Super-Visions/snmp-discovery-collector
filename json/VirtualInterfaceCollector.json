@@ -1,7 +1,7 @@
 {
     "name": "$prefix$SNMP Virtual Interface Discovery - $uuid$",
     "description": "SNMP Discovery v$version$",
-    "status": "implementation",
+    "status": "$synchro_status$",
     "user_id": "$synchro_user$",
     "notify_contact_id": "$contact_to_notify$",
     "scope_class": "NetworkDeviceVirtualInterface",
