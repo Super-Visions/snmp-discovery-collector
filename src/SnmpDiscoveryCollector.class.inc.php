@@ -44,6 +44,14 @@ class SnmpDiscoveryCollector extends SnmpCollector
 		VirtualInterfaceCollector::InterfaceList => [],
 		PhysicalInterfaceCollector::InterfaceList => [],
 	];
+	/**
+	 * @var array<string, string[]> List of discovered Models ordered by Brand
+	 */
+	public static array $aDiscoveredModels = [];
+	/**
+	 * @var array<string, string[]> List of discovered IOS Versions ordered by Brand
+	 */
+	public static array $aDiscoveredVersions = [];
 	protected static MappingTable $oSysOidBrandMapping;
 	protected static MappingTable $oSysOidModelMapping;
 	protected static MappingTable $oSysDescrBrandMapping;
@@ -168,6 +176,19 @@ class SnmpDiscoveryCollector extends SnmpCollector
 			return $aInterface;
 		};
 
+		$sBrand = $aData['brand_id'];
+		$sModel = $aData['model_id'];
+		$sVersion = $aData['iosversion_id'];
+
+		// Prepare data for Model collection
+		if (!isset(static::$aDiscoveredModels[$sBrand])) static::$aDiscoveredModels[$sBrand] = [$sModel];
+		elseif (!in_array($sModel, static::$aDiscoveredModels[$sBrand])) static::$aDiscoveredModels[$sBrand][] = $sModel;
+
+		// Prepare data for IOSVersion collection
+		if (!isset(static::$aDiscoveredVersions[$sBrand])) static::$aDiscoveredVersions[$sBrand] = [$sVersion];
+		elseif (!in_array($sVersion, static::$aDiscoveredVersions[$sBrand])) static::$aDiscoveredVersions[$sBrand][] = $sVersion;
+
+		// Prepare data for interface collection
 		foreach (array_keys(static::$aDiscoveredInterfaces) as $sField)
 			if (isset($aData[$sField])) {
 				static::$aDiscoveredInterfaces[$sField] += array_map($cPrepareInterface, $aData[$sField]);
@@ -188,6 +209,32 @@ class SnmpDiscoveryCollector extends SnmpCollector
 		
 		Utils::Log(LOG_NOTICE, $this->iFailedIPs . ' non responding devices.');
 		parent::Cleanup();
+	}
+
+	/**
+	 * Initiate sub-collectors after discovery collector.
+	 * @param $iMaxChunkSize
+	 * @return bool
+	 * @throws Exception
+	 */
+	public function Collect($iMaxChunkSize = 0)
+	{
+		if (!parent::Collect($iMaxChunkSize)) return false;
+
+		$aExtraCollectors = [
+			ModelCollector::class,
+			IOSVersionCollector::class,
+		];
+
+		foreach ($aExtraCollectors as $sCollector)
+		{
+			$oCollector = new $sCollector();
+			$oCollector->Init();
+
+			if (!$oCollector->Collect($iMaxChunkSize)) return false;
+		}
+
+		return true;
 	}
 
 	/**
