@@ -123,8 +123,8 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	 */
 	protected function ProcessLineBeforeSynchro(&$aLineData, $iLineIndex): void
 	{
-		static::$oModelLookup->Lookup($aLineData, ['brand_id','model_id'], 'model_id', $iLineIndex);
-		static::$oVersionLookup->Lookup($aLineData, ['brand_id','iosversion_id'], 'iosversion_id', $iLineIndex);
+		static::$oModelLookup->Lookup($aLineData, ['brand_id','model_id'], 'model_id', $iLineIndex, true);
+		static::$oVersionLookup->Lookup($aLineData, ['brand_id','iosversion_id'], 'iosversion_id', $iLineIndex, true);
 	}
 
 	/**
