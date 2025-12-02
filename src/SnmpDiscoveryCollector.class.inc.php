@@ -57,6 +57,8 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	protected static MappingTable $oSysDescrBrandMapping;
 	protected static MappingTable $oSysDescrModelMapping;
 	protected static MappingTable $oSysDescrVersionMapping;
+	protected static LookupTable $oModelLookup;
+	protected static LookupTable $oVersionLookup;
 
 	/**
 	 * @inheritDoc
@@ -94,7 +96,25 @@ class SnmpDiscoveryCollector extends SnmpCollector
 		
 		return parent::Prepare();
 	}
-	
+
+	/**
+	 * Allow process of `model_id` and `iosversion_id`.
+	 * @return true
+	 */
+	public function MustProcessBeforeSynchro()
+	{
+		return true;
+	}
+
+	/**
+	 * Process of `model_id` and `iosversion_id` before synchro.
+	 */
+	public function ProcessLineBeforeSynchro(&$aLineData, $iLineIndex): void
+	{
+		static::$oModelLookup->Lookup($aLineData, ['brand_id','model_id'], 'model_id', $iLineIndex);
+		static::$oVersionLookup->Lookup($aLineData, ['brand_id','iosversion_id'], 'iosversion_id', $iLineIndex);
+	}
+
 	/**
 	 * @return array|false
 	 * @throws Exception
@@ -383,6 +403,7 @@ SQL, $this->iApplicationID));
 	/**
 	 * Initialise the mapping tables used to detect the Brand, Model and IOS Version.
 	 * @return void
+	 * @throws Exception
 	 */
 	public function InitMappingTables(): void
 	{
@@ -391,6 +412,9 @@ SQL, $this->iApplicationID));
 		static::$oSysDescrBrandMapping = new MappingTable('sysDescr_brand_mapping');
 		static::$oSysDescrModelMapping = new MappingTable('sysDescr_model_mapping');
 		static::$oSysDescrVersionMapping = new MappingTable('sysDescr_version_mapping');
+
+		static::$oModelLookup = new LookupTable(/** @lang SQL */ "SELECT Model WHERE type = 'NetworkDevice'", ['brand_name','name']);
+		static::$oVersionLookup = new LookupTable( /** @lang SQL */ 'SELECT IOSVersion', ['brand_name', 'name']);
 	}
 
 	/**
