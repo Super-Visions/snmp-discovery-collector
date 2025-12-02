@@ -203,6 +203,18 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	}
 
 	/**
+	 * @inheritDoc
+	 */
+	public function AttributeIsOptional($sAttCode): bool
+	{
+		return match ($sAttCode)
+		{
+			'tickets_list' => true,
+			default => parent::AttributeIsOptional($sAttCode),
+		};
+	}
+
+	/**
 	 * Load the SNMP discovery application ID and subnet(s) to discover.
 	 * @return void
 	 * @throws Exception
