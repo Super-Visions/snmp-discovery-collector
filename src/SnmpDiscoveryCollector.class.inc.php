@@ -245,11 +245,11 @@ class SnmpDiscoveryCollector extends SnmpCollector
 
 	/**
 	 * Initiate sub-collectors after discovery collector.
-	 * @param $iMaxChunkSize
+	 * @param int $iMaxChunkSize
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function Collect($iMaxChunkSize = 0)
+	public function Collect($iMaxChunkSize = 0): bool
 	{
 		if (!parent::Collect($iMaxChunkSize)) return false;
 
@@ -275,7 +275,7 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	 * @param string $sHeader
 	 * @return bool
 	 */
-	protected function HeaderIsAllowed($sHeader)
+	protected function HeaderIsAllowed($sHeader): bool
 	{
 		if (in_array($sHeader, [
 			'snmp_sysname',
