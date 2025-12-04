@@ -161,7 +161,7 @@
 	<sysDescr_version_mapping type="array">
 		<pattern>/VRP \(R\) software, Version (\S+)/Versatile Routing Platform %2$s</pattern>
 		<pattern>/^TiMOS-\S+/%1$s</pattern>
-		<pattern>/^Arista Networks (EOS version \S+) running/%2$s</pattern>
+		<pattern>/^Arista Networks EOS version (\S+) running/EOS %2$s</pattern>
 		<pattern>/(BIG-IP software release \S+), build/%2$s</pattern>
 		<pattern>/^(Peakflow SP \S+) \(build .*\)/%2$s</pattern>
 	</sysDescr_version_mapping>
