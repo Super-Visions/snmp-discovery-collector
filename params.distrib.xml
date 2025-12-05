@@ -148,7 +148,7 @@
 
 	<sysDescr_model_mapping type="array">
 		<pattern>/HUAWEI (.*)$/%2$s</pattern>
-		<pattern>/^MINI-LINK/%1$s</pattern>
+		<pattern>/^MINI-LINK .+/%1$s</pattern>
 		<pattern>/Nokia (.+) Copyright/%2$s</pattern>
 		<pattern>/^Avocent .+/%1$s</pattern>
 		<pattern>/an Arista Networks (\S+)$/%2$s</pattern>
