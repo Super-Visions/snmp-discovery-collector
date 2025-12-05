@@ -110,7 +110,7 @@
 
 	<sysObjectID_brand_mapping type="array">
 		<pattern>/HUAWEI-MIB::/Huawei</pattern>
-		<pattern>/XF-SYSID-MIB::/Ericsson</pattern>
+		<pattern>/XF-\S+-MIB::/Ericsson</pattern>
 		<pattern>/TIMETRA-GLOBAL-MIB::/Nokia</pattern>
 		<pattern>/FORTINET-FORTIGATE-MIB::/Fortinet</pattern>
 		<pattern>/JUNIPER-CHASSIS-DEFINES-MIB::/Juniper</pattern>

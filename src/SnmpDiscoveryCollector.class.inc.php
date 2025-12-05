@@ -680,6 +680,7 @@ SQL, $this->iApplicationID));
 				$oSNMPWithTranslate = static::LoadSNMPConnection($sIP, $oCredentials, SNMP_OID_OUTPUT_MODULE);
 				$sTranslatedSysObjectID = @$oSNMPWithTranslate->get(/* SNMPv2-MIB::sysObjectID */ '.1.3.6.1.2.1.1.2.0');
 				if ($sTranslatedSysObjectID) {
+					Utils::Log(LOG_DEBUG, sprintf('Translated sysObjectID: %s', $sTranslatedSysObjectID));
 					$sBrand = static::$oSysOidBrandMapping->MapValue($sTranslatedSysObjectID);
 					$sModel = static::$oSysOidModelMapping->MapValue($sTranslatedSysObjectID);
 				}
