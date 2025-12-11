@@ -94,7 +94,8 @@ class SnmpDiscoveryCollector extends SnmpCollector
 				$this->oChannel->wait(timeout: 60);
 			} catch (AMQPTimeoutException $e) {
 				$this->oChannel->queue_purge($this->sQueue);
-				throw $e;
+				Utils::Log(LOG_ERR, $e->getMessage());
+				break;
 			}
 			$sBody = $this->oResponseMessage->getBody();
 			$iKey = $this->oResponseMessage->get('correlation_id');
