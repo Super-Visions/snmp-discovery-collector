@@ -146,6 +146,8 @@ class SnmpDiscoveryCollector extends SnmpCollector
 						continue;
 					} elseif (!empty($aResults['objects'])) foreach ($aResults['objects'] as $aContact) {
 						$aContacts[] = sprintf('contact_id:%d', $aContact['key']);
+					} else {
+						Utils::Log(LOG_WARNING, sprintf('Could not retrieve contact information for %s', json_encode($aKeySpec)));
 					}
 				} catch (Exception $e) {
 					Utils::Log(LOG_ERR, $e->getMessage());
