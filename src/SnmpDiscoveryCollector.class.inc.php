@@ -141,7 +141,8 @@ class SnmpDiscoveryCollector extends SnmpCollector
 				$this->oChannel->wait(timeout: 60);
 			} catch (AMQPTimeoutException $e) {
 				$this->oChannel->queue_purge($this->sQueue);
-				throw $e;
+				Utils::Log(LOG_ERR, $e->getMessage());
+				break;
 			}
 			$sBody = $this->oResponseMessage->getBody();
 			$iKey = $this->oResponseMessage->get('correlation_id');
@@ -674,7 +675,6 @@ SQL, $this->iApplicationID));
 					return null;
 				}
 
-
 				// Detect Brand/Model from translated sysObjectID
 				$sBrand = $sModel = null;
 				$oSNMPWithTranslate = static::LoadSNMPConnection($sIP, $oCredentials, SNMP_OID_OUTPUT_MODULE);
@@ -690,6 +690,9 @@ SQL, $this->iApplicationID));
 				$sBrand = static::$oSysDescrBrandMapping->MapValue($sSysDescr, $sBrand);
 				$sModel = static::$oSysDescrModelMapping->MapValue($sSysDescr, $sModel);
 				$sVersion = static::$oSysDescrVersionMapping->MapValue($sSysDescr);
+
+        // Detect linked contacts from sysLocation
+				// ToDo: Possible RegEx to use: (?<name>.+(?=\s[:\-\/]\s))|(?<email>\w\S*@\S*\w)|(?<phone>(?:00|\+)\d{1,4}\/?(?:[\s]?\d{2,})+)
 
 				// Return device
 				return [
