@@ -691,7 +691,7 @@ SQL, $this->iApplicationID));
 				$sModel = static::$oSysDescrModelMapping->MapValue($sSysDescr, $sModel);
 				$sVersion = static::$oSysDescrVersionMapping->MapValue($sSysDescr);
 
-        // Detect linked contacts from sysLocation
+				// Detect linked contacts from sysLocation
 				// ToDo: Possible RegEx to use: (?<name>.+(?=\s[:\-\/]\s))|(?<email>\w\S*@\S*\w)|(?<phone>(?:00|\+)\d{1,4}\/?(?:[\s]?\d{2,})+)
 
 				// Return device
