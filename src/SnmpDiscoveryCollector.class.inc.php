@@ -571,7 +571,10 @@ SQL, $this->iApplicationID));
 					Utils::Log(LOG_WARNING, sprintf('Skipping, SNMP GET failed: %s', $oSNMP->getError()));
 					return null;
 				}
-				
+
+				// Detect linked contacts from sysLocation
+				// ToDo: Possible RegEx to use: (?<name>.+(?=\s[:\-\/]\s))|(?<email>\w\S*@\S*\w)|(?<phone>(?:00|\+)\d{1,4}\/?(?:[\s]?\d{2,})+)
+
 				// Return device
 				return [
 					'primary_key' => $sPrimaryKey,
