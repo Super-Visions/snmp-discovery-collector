@@ -36,10 +36,10 @@
         },
         {
             "attcode": "brand_id",
-            "update": "0",
+            "update": "1",
             "reconcile": "0",
             "update_policy": "master_unlocked",
-            "reconciliation_attcode": "",
+            "reconciliation_attcode": "name",
             "finalclass": "SynchroAttExtKey"
         },
         {
@@ -113,7 +113,7 @@
         },
         {
             "attcode": "iosversion_id",
-            "update": "0",
+            "update": "1",
             "reconcile": "0",
             "update_policy": "master_unlocked",
             "reconciliation_attcode": "",
@@ -137,7 +137,7 @@
         },
         {
             "attcode": "model_id",
-            "update": "0",
+            "update": "1",
             "reconcile": "0",
             "update_policy": "master_unlocked",
             "reconciliation_attcode": "",

@@ -108,6 +108,64 @@
 		</item>
 	</serial_detection>
 
+	<sysObjectID_brand_mapping type="array">
+		<pattern>/HUAWEI-MIB::/Huawei</pattern>
+		<pattern>/XF-\S+-MIB::/Ericsson</pattern>
+		<pattern>/TIMETRA-GLOBAL-MIB::/Nokia</pattern>
+		<pattern>/FORTINET-FORTIGATE-MIB::/Fortinet</pattern>
+		<pattern>/JUNIPER-CHASSIS-DEFINES-MIB::/Juniper</pattern>
+		<pattern>/ACS8000-MIB::/Vertiv</pattern>
+		<pattern>/ARISTA-PRODUCTS-MIB::/Arista Networks</pattern>
+		<pattern>/F5-BIGIP-SYSTEM-MIB::/F5</pattern>
+		<!-- Fallback to the enterprise ID if no (specific) MIBs are installed -->
+		<pattern>/(?:SNMPv2-SMI::enterprises|\.1\.3\.6\.1\.4\.1)\.(\d+).*/%2$s</pattern>
+	</sysObjectID_brand_mapping>
+
+	<sysObjectID_model_mapping type="array">
+		<pattern>/HUAWEI-MIB::atn([^.]+)/ATN %2$s</pattern>
+		<pattern>/FORTINET-FORTIGATE-MIB::fgt(\w+)/FortiGate %2$s</pattern>
+		<pattern>/JUNIPER-CHASSIS-DEFINES-MIB::jnxProductNameJNP(10003|204)/MX %2$s</pattern>
+		<pattern>/JUNIPER-CHASSIS-DEFINES-MIB::jnxProduct(?:Name)?(\D+)(\d+)/%2$s %3$s</pattern>
+		<pattern>/ACS8000-MIB::acs(\d+)/Avocent ACS %2$s</pattern>
+		<pattern>/ARISTA-PRODUCTS-MIB::arista(\w+)$/%2$s</pattern>
+		<pattern>/F5-BIGIP-SYSTEM-MIB::bigipVcmpGuest$/BIG-IP vCMP Guest</pattern>
+		<pattern>/F5-BIGIP-SYSTEM-MIB::bigipVprB(\w+)$/BIG-IP VIPRION %2$s Blade</pattern>
+		<pattern>/F5-BIGIP-SYSTEM-MIB::bigipVprC(\w+)$/BIG-IP VIPRION %2$s Chassis</pattern>
+		<pattern>/F5-BIGIP-SYSTEM-MIB::bigip(\w+)$/BIG-IP %2$s</pattern>
+		<!-- Use the translated sysObjectId when it doesn't contain indexes -->
+		<pattern>/::([^\.]+)$/%2$s</pattern>
+	</sysObjectID_model_mapping>
+
+	<sysDescr_brand_mapping type="array">
+		<pattern>/Huawei Technologies Co/Huawei</pattern>
+		<pattern>/^Avocent/Vertiv</pattern>
+		<pattern>/^Arista Networks/%1$s</pattern>
+		<pattern>/^BIG-IP/F5</pattern>
+		<pattern>/^OSA/ADVA</pattern>
+		<pattern>/^Peakflow/Netscout</pattern>
+		<pattern>/Copyright \(C\) \d{4}-\d{4} (.+)\.$/%2$s</pattern>
+	</sysDescr_brand_mapping>
+
+	<sysDescr_model_mapping type="array">
+		<pattern>/HUAWEI (.*)$/%2$s</pattern>
+		<pattern>/^MINI-LINK .+/%1$s</pattern>
+		<pattern>/Nokia (.+) Copyright/%2$s</pattern>
+		<pattern>/^Avocent .+/%1$s</pattern>
+		<pattern>/an Arista Networks (\S+)$/%2$s</pattern>
+		<pattern>/^BIG-IP VPR-B(\w+) :/BIG-IP VIPRION %2$s Blade</pattern>
+		<pattern>/^BIG-IP VPR-C(\w+) :/BIG-IP VIPRION %2$s Chassis</pattern>
+		<pattern>/^(BIG-IP [^:]+) :/%2$s</pattern>
+		<pattern>/^OSA .+/%1$s</pattern>
+	</sysDescr_model_mapping>
+
+	<sysDescr_version_mapping type="array">
+		<pattern>/VRP \(R\) software, Version (\S+)/Versatile Routing Platform %2$s</pattern>
+		<pattern>/^TiMOS-\S+/%1$s</pattern>
+		<pattern>/^Arista Networks EOS version (\S+) running/EOS %2$s</pattern>
+		<pattern>/(BIG-IP software release \S+), build/%2$s</pattern>
+		<pattern>/^(Peakflow SP \S+) \(build .*\)/%2$s</pattern>
+	</sysDescr_version_mapping>
+
 	<!-- default status for newly discovered network devices -->
 	<default_status>implementation</default_status>
 

@@ -44,7 +44,22 @@ class SnmpDiscoveryCollector extends SnmpCollector
 		VirtualInterfaceCollector::InterfaceList => [],
 		PhysicalInterfaceCollector::InterfaceList => [],
 	];
-	
+	/**
+	 * @var array<string, string[]> List of discovered Models ordered by Brand
+	 */
+	public static array $aDiscoveredModels = [];
+	/**
+	 * @var array<string, string[]> List of discovered IOS Versions ordered by Brand
+	 */
+	public static array $aDiscoveredVersions = [];
+	protected static MappingTable $oSysOidBrandMapping;
+	protected static MappingTable $oSysOidModelMapping;
+	protected static MappingTable $oSysDescrBrandMapping;
+	protected static MappingTable $oSysDescrModelMapping;
+	protected static MappingTable $oSysDescrVersionMapping;
+	protected static LookupTable $oModelLookup;
+	protected static LookupTable $oVersionLookup;
+
 	/**
 	 * @inheritDoc
 	 * @return void
@@ -60,6 +75,8 @@ class SnmpDiscoveryCollector extends SnmpCollector
 		// Initiate distributed collection
 		$this->bDistributed = filter_var(Utils::GetConfigurationValue('amqp_enabled', false), FILTER_VALIDATE_BOOLEAN);
 		if ($this->bDistributed) $this->InitMessageQueue();
+
+		$this->InitMappingTables();
 	}
 	
 	/**
@@ -79,7 +96,37 @@ class SnmpDiscoveryCollector extends SnmpCollector
 		
 		return parent::Prepare();
 	}
-	
+
+	/**
+	 * Allow process of `model_id` and `iosversion_id`.
+	 * @return true
+	 */
+	protected function MustProcessBeforeSynchro(): bool
+	{
+		return true;
+	}
+
+	/**
+	 * Initialise needed lookup tables
+	 * @return void
+	 * @throws Exception
+	 */
+	protected function InitProcessBeforeSynchro(): void
+	{
+		static::$oModelLookup = new LookupTable(/** @lang SQL */ "SELECT Model WHERE type = 'NetworkDevice'", ['brand_name','name']);
+		static::$oVersionLookup = new LookupTable( /** @lang SQL */ 'SELECT IOSVersion', ['brand_name', 'name']);
+	}
+
+	/**
+	 * Process of `model_id` and `iosversion_id` before synchro.
+	 * @inheritDoc
+	 */
+	protected function ProcessLineBeforeSynchro(&$aLineData, $iLineIndex): void
+	{
+		static::$oModelLookup->Lookup($aLineData, ['brand_id','model_id'], 'model_id', $iLineIndex, true);
+		static::$oVersionLookup->Lookup($aLineData, ['brand_id','iosversion_id'], 'iosversion_id', $iLineIndex, true);
+	}
+
 	/**
 	 * @return array|false
 	 * @throws Exception
@@ -162,6 +209,19 @@ class SnmpDiscoveryCollector extends SnmpCollector
 			return $aInterface;
 		};
 
+		$sBrand = $aData['brand_id'];
+		$sModel = $aData['model_id'];
+		$sVersion = $aData['iosversion_id'];
+
+		// Prepare data for Model collection
+		if (!isset(static::$aDiscoveredModels[$sBrand])) static::$aDiscoveredModels[$sBrand] = [$sModel];
+		elseif (!in_array($sModel, static::$aDiscoveredModels[$sBrand])) static::$aDiscoveredModels[$sBrand][] = $sModel;
+
+		// Prepare data for IOSVersion collection
+		if (!isset(static::$aDiscoveredVersions[$sBrand])) static::$aDiscoveredVersions[$sBrand] = [$sVersion];
+		elseif (!in_array($sVersion, static::$aDiscoveredVersions[$sBrand])) static::$aDiscoveredVersions[$sBrand][] = $sVersion;
+
+		// Prepare data for interface collection
 		foreach (array_keys(static::$aDiscoveredInterfaces) as $sField)
 			if (isset($aData[$sField])) {
 				static::$aDiscoveredInterfaces[$sField] += array_map($cPrepareInterface, $aData[$sField]);
@@ -185,12 +245,38 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	}
 
 	/**
+	 * Initiate sub-collectors after discovery collector.
+	 * @param int $iMaxChunkSize
+	 * @return bool
+	 * @throws Exception
+	 */
+	public function Collect($iMaxChunkSize = 0): bool
+	{
+		if (!parent::Collect($iMaxChunkSize)) return false;
+
+		$aExtraCollectors = [
+			ModelCollector::class,
+			IOSVersionCollector::class,
+		];
+
+		foreach ($aExtraCollectors as $sCollector)
+		{
+			$oCollector = new $sCollector();
+			$oCollector->Init();
+
+			if (!$oCollector->Collect($iMaxChunkSize)) return false;
+		}
+
+		return true;
+	}
+
+	/**
 	 * @todo Workaround needed until PR merged in iTop
 	 * @link https://github.com/Combodo/iTop/pull/541
 	 * @param string $sHeader
 	 * @return bool
 	 */
-	protected function HeaderIsAllowed($sHeader)
+	protected function HeaderIsAllowed($sHeader): bool
 	{
 		if (in_array($sHeader, [
 			'snmp_sysname',
@@ -337,6 +423,20 @@ SQL, $this->iApplicationID));
 		} catch (Exception $e) {
 			throw new Exception(sprintf('Could not load additional devices: %s', $e->getMessage()), 0, $e);
 		}
+	}
+
+	/**
+	 * Initialise the mapping tables used to detect the Brand, Model and IOS Version.
+	 * @return void
+	 * @throws Exception
+	 */
+	public function InitMappingTables(): void
+	{
+		static::$oSysOidBrandMapping = new MappingTable('sysObjectID_brand_mapping');
+		static::$oSysOidModelMapping = new MappingTable('sysObjectID_model_mapping');
+		static::$oSysDescrBrandMapping = new MappingTable('sysDescr_brand_mapping');
+		static::$oSysDescrModelMapping = new MappingTable('sysDescr_model_mapping');
+		static::$oSysDescrVersionMapping = new MappingTable('sysDescr_version_mapping');
 	}
 
 	/**
@@ -508,6 +608,9 @@ SQL, $this->iApplicationID));
 	 *     snmpcredentials_id: int,
 	 *     status: string,
 	 *     serialnumber: ?string,
+	 *     brand_id: ?string,
+	 *     model_id: ?string,
+	 *     iosversion_id: ?string,
 	 *     responds_to_snmp: 'yes',
 	 *     snmp_last_discovery: string,
 	 *     snmp_sysname: string,
@@ -541,14 +644,15 @@ SQL, $this->iApplicationID));
 				$sPrimaryKey = $sysObjectID . ' - ';
 				
 				// Find device serial number
-				['serial' => $sSerial, 'load' => $bLoadSerial, 'primary_key' => $bUseAsPrimaryKey] = static::FindDeviceSerial($oSNMP, $sysObjectID);
+				[
+					'serial' => $sSerial,
+					'load' => $bLoadSerial,
+					'primary_key' => $bUseAsPrimaryKey,
+				] = static::FindDeviceSerial($oSNMP, $sysObjectID);
 				if (!is_null($sSerial) && $bUseAsPrimaryKey) {
 					Utils::Log(LOG_DEBUG, 'Device serial: ' . $sSerial);
 					$sPrimaryKey .= $sSerial;
 				} else $sPrimaryKey .= $sIP;
-				
-				// Find device type
-				// ToDo: mapping table on oid?
 				
 				// Load system table info
 				[
@@ -566,11 +670,26 @@ SQL, $this->iApplicationID));
 				]);
 
 				// Do not record this device if SNMP GET failed.
-				if ($oSNMP->getErrno() !== SNMP::ERRNO_NOERROR)
-				{
+				if ($oSNMP->getErrno() !== SNMP::ERRNO_NOERROR) {
 					Utils::Log(LOG_WARNING, sprintf('Skipping, SNMP GET failed: %s', $oSNMP->getError()));
 					return null;
 				}
+
+				// Detect Brand/Model from translated sysObjectID
+				$sBrand = $sModel = null;
+				$oSNMPWithTranslate = static::LoadSNMPConnection($sIP, $oCredentials, SNMP_OID_OUTPUT_MODULE);
+				$sTranslatedSysObjectID = @$oSNMPWithTranslate->get(/* SNMPv2-MIB::sysObjectID */ '.1.3.6.1.2.1.1.2.0');
+				if ($sTranslatedSysObjectID) {
+					Utils::Log(LOG_DEBUG, sprintf('Translated sysObjectID: %s', $sTranslatedSysObjectID));
+					$sBrand = static::$oSysOidBrandMapping->MapValue($sTranslatedSysObjectID);
+					$sModel = static::$oSysOidModelMapping->MapValue($sTranslatedSysObjectID);
+				}
+
+				// Detect Brand/Model/Version from sysDescr
+				$sSysDescr = trim($sSysDescr);
+				$sBrand = static::$oSysDescrBrandMapping->MapValue($sSysDescr, $sBrand);
+				$sModel = static::$oSysDescrModelMapping->MapValue($sSysDescr, $sModel);
+				$sVersion = static::$oSysDescrVersionMapping->MapValue($sSysDescr);
 
 				// Detect linked contacts from sysLocation
 				// ToDo: Possible RegEx to use: (?<name>.+(?=\s[:\-\/]\s))|(?<email>\w\S*@\S*\w)|(?<phone>(?:00|\+)\d{1,4}\/?(?:[\s]?\d{2,})+)
@@ -585,10 +704,13 @@ SQL, $this->iApplicationID));
 					'snmpcredentials_id' => $iCredentialsKey,
 					'status' => $aDefaults['status'],
 					'serialnumber' => $bLoadSerial ? $sSerial : null,
+					'brand_id' => $sBrand,
+					'model_id' => !empty($sBrand) ? $sModel : null,
+					'iosversion_id' => !empty($sBrand) ? $sVersion : null,
 					'responds_to_snmp' => 'yes',
 					'snmp_last_discovery' => date(Utils::GetConfigurationValue('date_format', 'Y-m-d H:i:s')),
 					'snmp_sysname' => $sSysName,
-					'snmp_sysdescr' => trim($sSysDescr),
+					'snmp_sysdescr' => $sSysDescr,
 					'snmp_syslocation' => $sSysLocation,
 					'snmp_syscontact' => $sSysContact,
 					'snmp_sysuptime' => (int) round($sSysUptime/100),
@@ -649,13 +771,14 @@ SQL, $this->iApplicationID));
 		}
 		return null;
 	}
-	
+
 	/**
 	 * @param string $sHostname
 	 * @param SnmpCredentials $oCredentials
+	 * @param int $iOidOutputFormat OID output format, defaults to numeric
 	 * @return SNMP
 	 */
-	protected static function LoadSNMPConnection(string $sHostname, SnmpCredentials $oCredentials): SNMP
+	protected static function LoadSNMPConnection(string $sHostname, SnmpCredentials $oCredentials, int $iOidOutputFormat = SNMP_OID_OUTPUT_NUMERIC): SNMP
 	{
 		if (!empty($oCredentials->securityLevel)) {
 			$oSNMP = new SNMP(SNMP::VERSION_3, $sHostname, $oCredentials->securityName);
@@ -671,8 +794,7 @@ SQL, $this->iApplicationID));
 		
 		// Plain value retrieval
 		$oSNMP->valueretrieval = SNMP_VALUE_PLAIN;
-		// Numeric OID output format
-		$oSNMP->oid_output_format = SNMP_OID_OUTPUT_NUMERIC;
+		$oSNMP->oid_output_format = $iOidOutputFormat;
 		
 		return $oSNMP;
 	}
