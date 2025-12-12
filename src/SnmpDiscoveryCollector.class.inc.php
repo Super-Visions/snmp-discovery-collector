@@ -150,6 +150,8 @@ class SnmpDiscoveryCollector extends SnmpCollector
 							continue;
 						} elseif (!empty($aResults['objects'])) foreach ($aResults['objects'] as $aContact) {
 							$aFoundContacts[] = sprintf('contact_id:%d', $aContact['key']);
+						} else {
+							Utils::Log(LOG_WARNING, sprintf('Could not retrieve contact information for %s', json_encode($aKeySpec)));
 						}
 						$aLookupContactsCache[$aKeySpecHash] = $aFoundContacts;
 						$aContacts += $aFoundContacts;
@@ -160,8 +162,6 @@ class SnmpDiscoveryCollector extends SnmpCollector
 					$aContacts += $aLookupContactsCache[$aKeySpecHash];
 				}
 			}
-			if (empty($aContacts) && !empty($aLookupContacts))
-				Utils::Log(LOG_WARNING, sprintf('Could not retrieve contact information for %s', $aLineData[$aFieldsPos['contacts_list']]));
 			$aLineData[$aFieldsPos['contacts_list']] = implode('|', array_unique($aContacts));
 		}
 	}
