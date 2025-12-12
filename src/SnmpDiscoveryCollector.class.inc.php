@@ -125,6 +125,45 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	{
 		static::$oModelLookup->Lookup($aLineData, ['brand_id','model_id'], 'model_id', $iLineIndex, true);
 		static::$oVersionLookup->Lookup($aLineData, ['brand_id','iosversion_id'], 'iosversion_id', $iLineIndex, true);
+
+		// lookup contacts
+		static $aFieldsPos = [];
+		static $aLookupContactsCache = [];
+		if ($iLineIndex === 0) {
+			foreach ($aLineData as $idx => $sHeader) {
+				$aFieldsPos[$sHeader] = $idx;
+			}
+		} else {
+			$oClient = new RestClient();
+			$aLookupContacts = json_decode($aLineData[$aFieldsPos['contacts_list']]);
+			$aContacts = [];
+
+			foreach ($aLookupContacts as $aKeySpec) {
+				$aKeySpecHash = md5(serialize($aKeySpec));
+				if (!array_key_exists($aKeySpecHash, $aLookupContactsCache)) {
+					try
+					{
+						$aFoundContacts = [];
+						$aResults = $oClient->Get('Contact', $aKeySpec);
+						if ($aResults['code'] != 0) {
+							Utils::Log(LOG_ERR, $aResults['message']);
+							continue;
+						} elseif (!empty($aResults['objects'])) foreach ($aResults['objects'] as $aContact) {
+							$aFoundContacts[] = sprintf('contact_id:%d', $aContact['key']);
+						} else {
+							Utils::Log(LOG_WARNING, sprintf('Could not retrieve contact information for %s', json_encode($aKeySpec)));
+						}
+						$aLookupContactsCache[$aKeySpecHash] = $aFoundContacts;
+						$aContacts += $aFoundContacts;
+					} catch (Exception $e) {
+						Utils::Log(LOG_ERR, $e->getMessage());
+					}
+				} else {
+					$aContacts += $aLookupContactsCache[$aKeySpecHash];
+				}
+			}
+			$aLineData[$aFieldsPos['contacts_list']] = implode('|', array_unique($aContacts));
+		}
 	}
 
 	/**
@@ -692,7 +731,24 @@ SQL, $this->iApplicationID));
 				$sVersion = static::$oSysDescrVersionMapping->MapValue($sSysDescr);
 
 				// Detect linked contacts from sysLocation
-				// ToDo: Possible RegEx to use: (?<name>.+(?=\s[:\-\/]\s))|(?<email>\w\S*@\S*\w)|(?<phone>(?:00|\+)\d{1,4}\/?(?:[\s]?\d{2,})+)
+				$aContacts = [];
+				$aMatchRules = [
+					/** @lang RegExp */ '/(?<friendlyname>\w[\w ]+?)(\s+)(?:[:\-\/](?2))?<?(?<email>\b\S+@\S+\b)>?/',
+					/** @lang RegExp */ '/(?<friendlyname>\w.+?)(\s*)(?:[:\-\/](?2))?(?<phone>(?:00|\+)\d{1,4}\/?(?:\s?\d{2,})+)/',
+					/** @lang RegExp */ '/^(?<org_name>[\w\s]+) - (?<friendlyname>[\w\s]+)$/',
+					/** @lang RegExp */ '/<?(?<email>\b\S+@\S+\b)>?/',
+				];
+				$cFilter = fn($sValue, $sKey) => is_string($sKey) && !is_null($sValue);
+				foreach ($aMatchRules as $sMatchRule) {
+					if (preg_match_all($sMatchRule, $sSysContact, $aMatches, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL)) {
+						foreach ($aMatches as $aMatch) {
+							Utils::Log(LOG_DEBUG, sprintf('Contact details detected from sysContact: %s', $aMatch[0]));
+							$aContact = array_filter($aMatch, $cFilter, ARRAY_FILTER_USE_BOTH);
+							if (!empty($aContact)) $aContacts[] = $aContact;
+						}
+					}
+				}
+				if (empty($aContacts) && !empty($sSysContact)) $aContacts[] = ['friendlyname' => $sSysContact];
 
 				// Return device
 				return [
@@ -714,6 +770,7 @@ SQL, $this->iApplicationID));
 					'snmp_syslocation' => $sSysLocation,
 					'snmp_syscontact' => $sSysContact,
 					'snmp_sysuptime' => (int) round($sSysUptime/100),
+					'contacts_list' => json_encode($aContacts),
 				] + SnmpInterfaceCollector::CollectInterfaces($oSNMP);
 			}
 		}
