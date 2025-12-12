@@ -723,14 +723,23 @@ SQL, $this->iApplicationID));
 
 				// Detect linked contacts from sysLocation
 				$aContacts = [];
+				$aMatchRules = [
+					/** @lang RegExp */ '/(?<friendlyname>\w[\w ]+?)(\s+)(?:[:\-\/](?2))?<?(?<email>\b\S+@\S+\b)>?/',
+					/** @lang RegExp */ '/(?<friendlyname>\w.+?)(\s*)(?:[:\-\/](?2))?(?<phone>(?:00|\+)\d{1,4}\/?(?:\s?\d{2,})+)/',
+					/** @lang RegExp */ '/^(?<org_name>[\w\s]+) - (?<friendlyname>[\w\s]+)$/',
+					/** @lang RegExp */ '/<?(?<email>\b\S+@\S+\b)>?/',
+				];
 				$cFilter = fn($sValue, $sKey) => is_string($sKey) && !is_null($sValue);
-				if (preg_match_all('/(?:(?<name>.+)\s[:\-\/]\s)?(?:(?<email>\w\S*@\S*\w)|(?<phone>(?:00|\+)\d{1,4}\/?(?:[\s]?\d{2,})+))/', $sSysContact, $aMatches, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL)) {
-					foreach ($aMatches as $aMatch) {
-						Utils::Log(LOG_DEBUG, sprintf('Contact details detected from sysContact: %s', $aMatch[0]));
-						$aContact = array_filter($aMatch, $cFilter, ARRAY_FILTER_USE_BOTH);
-						if (!empty($aContact)) $aContacts[] = $aContact;
+				foreach ($aMatchRules as $sMatchRule) {
+					if (preg_match_all($sMatchRule, $sSysContact, $aMatches, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL)) {
+						foreach ($aMatches as $aMatch) {
+							Utils::Log(LOG_DEBUG, sprintf('Contact details detected from sysContact: %s', $aMatch[0]));
+							$aContact = array_filter($aMatch, $cFilter, ARRAY_FILTER_USE_BOTH);
+							if (!empty($aContact)) $aContacts[] = $aContact;
+						}
 					}
 				}
+				if (empty($aContacts) && !empty($sSysContact)) $aContacts[] = ['friendlyname' => $sSysContact];
 
 				// Return device
 				return [
