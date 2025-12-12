@@ -128,6 +128,7 @@ class SnmpDiscoveryCollector extends SnmpCollector
 
 		// lookup contacts
 		static $aFieldsPos = [];
+		static $aLookupContactsCache = [];
 		if ($iLineIndex === 0) {
 			foreach ($aLineData as $idx => $sHeader) {
 				$aFieldsPos[$sHeader] = $idx;
@@ -138,22 +139,30 @@ class SnmpDiscoveryCollector extends SnmpCollector
 			$aContacts = [];
 
 			foreach ($aLookupContacts as $aKeySpec) {
-				try
-				{
-					$aResults = $oClient->Get('Contact', $aKeySpec);
-					if ($aResults['code'] != 0) {
-						Utils::Log(LOG_ERR, $aResults['message']);
-						continue;
-					} elseif (!empty($aResults['objects'])) foreach ($aResults['objects'] as $aContact) {
-						$aContacts[] = sprintf('contact_id:%d', $aContact['key']);
-					} else {
-						Utils::Log(LOG_WARNING, sprintf('Could not retrieve contact information for %s', json_encode($aKeySpec)));
+				$aKeySpecHash = md5(serialize($aKeySpec));
+				if (!array_key_exists($aKeySpecHash, $aLookupContactsCache)) {
+					try
+					{
+						$aFoundContacts = [];
+						$aResults = $oClient->Get('Contact', $aKeySpec);
+						if ($aResults['code'] != 0) {
+							Utils::Log(LOG_ERR, $aResults['message']);
+							continue;
+						} elseif (!empty($aResults['objects'])) foreach ($aResults['objects'] as $aContact) {
+							$aFoundContacts[] = sprintf('contact_id:%d', $aContact['key']);
+						}
+						$aLookupContactsCache[$aKeySpecHash] = $aFoundContacts;
+						$aContacts += $aFoundContacts;
+					} catch (Exception $e) {
+						Utils::Log(LOG_ERR, $e->getMessage());
 					}
-				} catch (Exception $e) {
-					Utils::Log(LOG_ERR, $e->getMessage());
+				} else {
+					$aContacts += $aLookupContactsCache[$aKeySpecHash];
 				}
 			}
-			$aLineData[$aFieldsPos['contacts_list']] = implode('|', $aContacts);
+			if (empty($aContacts) && !empty($aLookupContacts))
+				Utils::Log(LOG_WARNING, sprintf('Could not retrieve contact information for %s', $aLineData[$aFieldsPos['contacts_list']]));
+			$aLineData[$aFieldsPos['contacts_list']] = implode('|', array_unique($aContacts));
 		}
 	}
 
