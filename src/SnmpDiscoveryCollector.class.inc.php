@@ -553,6 +553,7 @@ SQL, $this->iApplicationID));
 		Utils::Log(LOG_DEBUG, sprintf('AMQP consumer tag: %s.', $sConsumerTag));
 		
 		$this->iTimeout = time() + $iDuration;
+		Utils::Log(LOG_NOTICE, sprintf('Running worker at least until %s.', date('Y-m-d H:i:s', $this->iTimeout)));
 		
 		// Start consuming
 		$this->oChannel->consume();
