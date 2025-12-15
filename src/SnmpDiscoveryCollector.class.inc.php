@@ -59,6 +59,10 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	protected static MappingTable $oSysDescrVersionMapping;
 	protected static LookupTable $oModelLookup;
 	protected static LookupTable $oVersionLookup;
+	/**
+	 * @var array<string, array> Cached list of contacts for each lookup spec
+	 */
+	protected static array $aLookupContacts = [];
 
 	/**
 	 * @inheritDoc
@@ -118,52 +122,15 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	}
 
 	/**
-	 * Process of `model_id` and `iosversion_id` before synchro.
+	 * Process of `model_id`, `iosversion_id` and `contacts_list` before synchro.
 	 * @inheritDoc
+     * @throws Exception
 	 */
 	protected function ProcessLineBeforeSynchro(&$aLineData, $iLineIndex): void
 	{
 		static::$oModelLookup->Lookup($aLineData, ['brand_id','model_id'], 'model_id', $iLineIndex, true);
 		static::$oVersionLookup->Lookup($aLineData, ['brand_id','iosversion_id'], 'iosversion_id', $iLineIndex, true);
-
-		// lookup contacts
-		static $aFieldsPos = [];
-		static $aLookupContactsCache = [];
-		if ($iLineIndex === 0) {
-			foreach ($aLineData as $idx => $sHeader) {
-				$aFieldsPos[$sHeader] = $idx;
-			}
-		} else {
-			$oClient = new RestClient();
-			$aLookupContacts = json_decode($aLineData[$aFieldsPos['contacts_list']]);
-			$aContacts = [];
-
-			foreach ($aLookupContacts as $aKeySpec) {
-				$aKeySpecHash = md5(serialize($aKeySpec));
-				if (!array_key_exists($aKeySpecHash, $aLookupContactsCache)) {
-					try
-					{
-						$aFoundContacts = [];
-						$aResults = $oClient->Get('Contact', $aKeySpec);
-						if ($aResults['code'] != 0) {
-							Utils::Log(LOG_ERR, $aResults['message']);
-							continue;
-						} elseif (!empty($aResults['objects'])) foreach ($aResults['objects'] as $aContact) {
-							$aFoundContacts[] = sprintf('contact_id:%d', $aContact['key']);
-						} else {
-							Utils::Log(LOG_WARNING, sprintf('Could not retrieve contact information for %s', json_encode($aKeySpec)));
-						}
-						$aLookupContactsCache[$aKeySpecHash] = $aFoundContacts;
-						$aContacts += $aFoundContacts;
-					} catch (Exception $e) {
-						Utils::Log(LOG_ERR, $e->getMessage());
-					}
-				} else {
-					$aContacts += $aLookupContactsCache[$aKeySpecHash];
-				}
-			}
-			$aLineData[$aFieldsPos['contacts_list']] = implode('|', array_unique($aContacts));
-		}
+		static::ProcessContactsLookup($aLineData, $iLineIndex, 'contacts_list');
 	}
 
 	/**
@@ -854,5 +821,53 @@ SQL, $this->iApplicationID));
 		$oSNMP->oid_output_format = $iOidOutputFormat;
 		
 		return $oSNMP;
+	}
+
+    /**
+     * Process contact list to lookup existing contacts
+     * @param array $aLineData
+     * @param int $iLineIndex
+     * @param string $sDestField
+     * @throws Exception
+     */
+	protected static function ProcessContactsLookup(array &$aLineData, int $iLineIndex, string $sDestField): void
+	{
+		static $iDestFieldPos = 0;
+
+		if ($iLineIndex === 0) {
+			foreach ($aLineData as $idx => $sHeader) if ($sHeader === $sDestField) {
+				$iDestFieldPos = $idx;
+			}
+			return;
+		}
+
+		$oClient = new RestClient();
+		$aLookupContacts = json_decode($aLineData[$iDestFieldPos]);
+		$aContacts = [];
+
+		foreach ($aLookupContacts as $aKeySpec) {
+			$sKeySpecHash = md5(serialize($aKeySpec));
+			if (!array_key_exists($sKeySpecHash, static::$aLookupContacts)) {
+				try {
+					$aFoundContacts = [];
+					$aResults = $oClient->Get('Contact', $aKeySpec);
+					if ($aResults['code'] != 0) {
+						Utils::Log(LOG_ERR, $aResults['message']);
+						continue;
+					} elseif (!empty($aResults['objects'])) foreach ($aResults['objects'] as $aContact) {
+						$aFoundContacts[] = sprintf('contact_id:%d', $aContact['key']);
+					} else {
+						Utils::Log(LOG_WARNING, sprintf('Could not retrieve contact information for %s', json_encode($aKeySpec)));
+					}
+					static::$aLookupContacts[$sKeySpecHash] = $aFoundContacts;
+					$aContacts += $aFoundContacts;
+				} catch (Exception $e) {
+					Utils::Log(LOG_ERR, $e->getMessage());
+				}
+			} else {
+				$aContacts += static::$aLookupContacts[$sKeySpecHash];
+			}
+		}
+		$aLineData[$iDestFieldPos] = implode('|', array_unique($aContacts));
 	}
 }
