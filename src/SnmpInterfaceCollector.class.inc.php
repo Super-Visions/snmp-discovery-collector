@@ -91,6 +91,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 		];
 
 		if (!filter_var(Utils::GetConfigurationValue('collect_interfaces', false), FILTER_VALIDATE_BOOLEAN)) return $aInterfaces;
+		Utils::Log(LOG_DEBUG, "Collecting interfaces...");
 
 		// Load from ifTable
 		$ifDescr = @$oSNMP->walk('.1.3.6.1.2.1.2.2.1.2', true);
@@ -108,7 +109,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 		if ($ifType !== false) foreach ($ifType as $iIfIndex => $iIfType) {
 			$aInterface = [
 				'primary_key' => $iIfIndex,
-				'name' => $ifDescr[$iIfIndex],
+				'name' => null,
 				'comment' => '',
 				'macaddress' => null,
 				'interfacespeed_id' => null,
@@ -120,8 +121,10 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 			if (!empty($ifName[$iIfIndex])) {
 				$aInterface['name'] = $ifName[$iIfIndex];
 
-				if ($ifName[$iIfIndex] != $ifDescr[$iIfIndex]) $aInterface['comment'] = $ifDescr[$iIfIndex].PHP_EOL;
-			}
+				if (isset($ifDescr[$iIfIndex]) && $ifName[$iIfIndex] != $ifDescr[$iIfIndex]) $aInterface['comment'] = $ifDescr[$iIfIndex].PHP_EOL;
+			} elseif (!empty($ifDescr[$iIfIndex])) {
+                $aInterface['name'] = $ifDescr[$iIfIndex];
+            }
 
 			if (isset($ifAdminStatus[$iIfIndex])) $aInterface['status'] = $ifAdminStatus[$iIfIndex];
 			if (isset($ifPhysAddress[$iIfIndex]) && strlen($ifPhysAddress[$iIfIndex]) == 6)
@@ -153,6 +156,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 			}
 		}
 
+		Utils::Log(LOG_DEBUG, sprintf('%d interfaces collected', array_reduce($aInterfaces, fn($c, $item) => $c + count($item))));
 		return $aInterfaces;
 	}
 }

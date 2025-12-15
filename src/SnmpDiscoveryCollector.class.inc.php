@@ -230,7 +230,7 @@ class SnmpDiscoveryCollector extends SnmpCollector
 		// Prepare data for interface collection
 		foreach (array_keys(static::$aDiscoveredInterfaces) as $sField)
 			if (isset($aData[$sField])) {
-				static::$aDiscoveredInterfaces[$sField] += array_map($cPrepareInterface, $aData[$sField]);
+				array_push(static::$aDiscoveredInterfaces[$sField], ...array_map($cPrepareInterface, $aData[$sField]));
 				unset($aData[$sField]);
 			}
 
@@ -559,6 +559,7 @@ SQL, $this->iApplicationID));
 		Utils::Log(LOG_DEBUG, sprintf('AMQP consumer tag: %s.', $sConsumerTag));
 		
 		$this->iTimeout = time() + $iDuration;
+		Utils::Log(LOG_NOTICE, sprintf('Running worker at least until %s.', date('Y-m-d H:i:s', $this->iTimeout)));
 		
 		// Start consuming
 		$this->oChannel->consume();
