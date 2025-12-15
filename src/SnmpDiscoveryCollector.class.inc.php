@@ -697,7 +697,7 @@ SQL, $this->iApplicationID));
 				$sModel = static::$oSysDescrModelMapping->MapValue($sSysDescr, $sModel);
 				$sVersion = static::$oSysDescrVersionMapping->MapValue($sSysDescr);
 
-				// Detect linked contacts from sysLocation
+				// Detect linked contacts from sysContact
 				$aContacts = [];
                 $aMatchRules = Utils::GetConfigurationValue('sysContact_mapping', []);
 				$cFilter = fn($sValue, $sKey) => is_string($sKey) && !is_null($sValue);
