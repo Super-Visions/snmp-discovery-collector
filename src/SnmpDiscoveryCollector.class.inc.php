@@ -224,7 +224,7 @@ class SnmpDiscoveryCollector extends SnmpCollector
 		// Prepare data for interface collection
 		foreach (array_keys(static::$aDiscoveredInterfaces) as $sField)
 			if (isset($aData[$sField])) {
-				static::$aDiscoveredInterfaces[$sField] += array_map($cPrepareInterface, $aData[$sField]);
+				array_push(static::$aDiscoveredInterfaces[$sField], ...array_map($cPrepareInterface, $aData[$sField]));
 				unset($aData[$sField]);
 			}
 
