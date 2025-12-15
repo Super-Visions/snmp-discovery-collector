@@ -582,19 +582,19 @@ SQL, $this->iApplicationID));
 		$iKey = $oRequest->get('correlation_id');
 		
 		// Discover IP addresses as network device
-		$oResponse = new AMQPMessage(
-			json_encode(static::DiscoverDeviceByIP($iKey, $sIP, $aDefaults, $aDeviceCredentials)),
-			[
-				'content_type' => 'application/json',
-				'correlation_id' => $iKey,
-			]
-		);
-		
-		// Send results back
-		Utils::Log(LOG_DEBUG, sprintf('Replying to %s', $oRequest->get('reply_to')));
-		$this->oChannel->basic_publish($oResponse, routing_key: $oRequest->get('reply_to'));
-		$oRequest->ack();
-		
+		$body = json_encode(static::DiscoverDeviceByIP($iKey, $sIP, $aDefaults, $aDeviceCredentials));
+		if ($body === false) {
+			Utils::Log(LOG_ERR, sprintf('Failed to encode result as JSON: %s', json_last_error_msg()));
+			$oRequest->reject(false);
+		} else {
+			$oResponse = new AMQPMessage($body, ['content_type' => 'application/json', 'correlation_id' => $iKey]);
+
+			// Send results back
+			Utils::Log(LOG_DEBUG, sprintf('Replying to %s.', $oRequest->get('reply_to')));
+			$this->oChannel->basic_publish($oResponse, routing_key: $oRequest->get('reply_to'));
+			$oRequest->ack();
+		}
+
 		// Stop worker when duration is passed
 		if (time() >= $this->iTimeout)
 			$this->oChannel->getConnection()->close();

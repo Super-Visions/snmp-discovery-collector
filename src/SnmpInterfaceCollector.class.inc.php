@@ -134,7 +134,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 			if (isset($ifAlias[$iIfIndex])) $aInterface['comment'] .= $ifAlias[$iIfIndex];
 			if (isset($ifMtu[$iIfIndex])) $aInterface['mtu'] = $ifMtu[$iIfIndex];
 
-			$aInterface['comment'] = trim($aInterface['comment']);
+			$aInterface['comment'] = mb_convert_encoding(trim($aInterface['comment']), 'UTF-8', ['UTF-8', 'ISO-8859-1', 'Windows-1252']);
 
 			/**
 			 * @see https://www.iana.org/assignments/ianaiftype-mib/ianaiftype-mib
