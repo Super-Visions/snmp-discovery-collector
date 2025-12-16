@@ -59,6 +59,10 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	protected static MappingTable $oSysDescrVersionMapping;
 	protected static LookupTable $oModelLookup;
 	protected static LookupTable $oVersionLookup;
+	/**
+	 * @var array<string, array> Cached list of contacts for each lookup spec
+	 */
+	protected static array $aLookupContacts = [];
 
 	/**
 	 * @inheritDoc
@@ -118,13 +122,15 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	}
 
 	/**
-	 * Process of `model_id` and `iosversion_id` before synchro.
+	 * Process of `model_id`, `iosversion_id` and `contacts_list` before synchro.
 	 * @inheritDoc
+     * @throws Exception
 	 */
 	protected function ProcessLineBeforeSynchro(&$aLineData, $iLineIndex): void
 	{
 		static::$oModelLookup->Lookup($aLineData, ['brand_id','model_id'], 'model_id', $iLineIndex, true);
 		static::$oVersionLookup->Lookup($aLineData, ['brand_id','iosversion_id'], 'iosversion_id', $iLineIndex, true);
+		static::ProcessContactsLookup($aLineData, $iLineIndex, 'contacts_list');
 	}
 
 	/**
@@ -692,8 +698,20 @@ SQL, $this->iApplicationID));
 				$sModel = static::$oSysDescrModelMapping->MapValue($sSysDescr, $sModel);
 				$sVersion = static::$oSysDescrVersionMapping->MapValue($sSysDescr);
 
-				// Detect linked contacts from sysLocation
-				// ToDo: Possible RegEx to use: (?<name>.+(?=\s[:\-\/]\s))|(?<email>\w\S*@\S*\w)|(?<phone>(?:00|\+)\d{1,4}\/?(?:[\s]?\d{2,})+)
+				// Detect linked contacts from sysContact
+				$aContacts = [];
+                $aMatchRules = Utils::GetConfigurationValue('sysContact_mapping', []);
+				$cFilter = fn($sValue, $sKey) => is_string($sKey) && !is_null($sValue);
+				foreach ($aMatchRules as $sMatchRule) {
+					if (preg_match_all($sMatchRule, $sSysContact, $aMatches, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL)) {
+						foreach ($aMatches as $aMatch) {
+							Utils::Log(LOG_DEBUG, sprintf('Contact details detected from sysContact: %s', $aMatch[0]));
+							$aContact = array_filter($aMatch, $cFilter, ARRAY_FILTER_USE_BOTH);
+							if (!empty($aContact)) $aContacts[] = $aContact;
+						}
+					}
+				}
+				if (empty($aContacts) && !empty($sSysContact)) $aContacts[] = ['friendlyname' => $sSysContact];
 
 				// Return device
 				return [
@@ -715,6 +733,7 @@ SQL, $this->iApplicationID));
 					'snmp_syslocation' => $sSysLocation,
 					'snmp_syscontact' => $sSysContact,
 					'snmp_sysuptime' => (int) round($sSysUptime/100),
+					'contacts_list' => json_encode($aContacts),
 				] + SnmpInterfaceCollector::CollectInterfaces($oSNMP);
 			}
 		}
@@ -798,5 +817,53 @@ SQL, $this->iApplicationID));
 		$oSNMP->oid_output_format = $iOidOutputFormat;
 		
 		return $oSNMP;
+	}
+
+    /**
+     * Process contact list to lookup existing contacts
+     * @param array $aLineData
+     * @param int $iLineIndex
+     * @param string $sDestField
+     * @throws Exception
+     */
+	protected static function ProcessContactsLookup(array &$aLineData, int $iLineIndex, string $sDestField): void
+	{
+		static $iDestFieldPos = 0;
+
+		if ($iLineIndex === 0) {
+			foreach ($aLineData as $idx => $sHeader) if ($sHeader === $sDestField) {
+				$iDestFieldPos = $idx;
+			}
+			return;
+		}
+
+		$oClient = new RestClient();
+		$aLookupContacts = json_decode($aLineData[$iDestFieldPos]);
+		$aContacts = [];
+
+		foreach ($aLookupContacts as $aKeySpec) {
+			$sKeySpecHash = md5(serialize($aKeySpec));
+			if (!array_key_exists($sKeySpecHash, static::$aLookupContacts)) {
+				try {
+					$aFoundContacts = [];
+					$aResults = $oClient->Get('Contact', $aKeySpec);
+					if ($aResults['code'] != 0) {
+						Utils::Log(LOG_ERR, $aResults['message']);
+						continue;
+					} elseif (!empty($aResults['objects'])) foreach ($aResults['objects'] as $aContact) {
+						$aFoundContacts[] = sprintf('contact_id:%d', $aContact['key']);
+					} else {
+						Utils::Log(LOG_WARNING, sprintf('Could not retrieve contact information for %s', json_encode($aKeySpec)));
+					}
+					static::$aLookupContacts[$sKeySpecHash] = $aFoundContacts;
+					$aContacts += $aFoundContacts;
+				} catch (Exception $e) {
+					Utils::Log(LOG_ERR, $e->getMessage());
+				}
+			} else {
+				$aContacts += static::$aLookupContacts[$sKeySpecHash];
+			}
+		}
+		$aLineData[$iDestFieldPos] = implode('|', array_unique($aContacts));
 	}
 }

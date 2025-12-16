@@ -166,6 +166,13 @@
 		<pattern>/^(Peakflow SP \S+) \(build .*\)/%2$s</pattern>
 	</sysDescr_version_mapping>
 
+	<sysContact_mapping type="array">
+		<pattern><![CDATA[/(?<friendlyname>\w[\w ]+?)(\s+)(?:[:\-\/](?2))?<?(?<email>\b\S+@\S+\b)>?/]]></pattern>
+		<pattern><![CDATA[/(?<friendlyname>\w.+?)(\s*)(?:[:\-\/](?2))?(?<phone>(?:00|\+)\d{1,4}\/?(?:\s?\d{2,})+)/]]></pattern>
+		<pattern><![CDATA[/^(?<org_name>[\w\s]+) - (?<friendlyname>[\w\s]+)$/]]></pattern>
+		<pattern><![CDATA[/<?(?<email>\b\S+@\S+\b)>?/]]></pattern>
+	</sysContact_mapping>
+
 	<!-- default status for newly discovered network devices -->
 	<default_status>implementation</default_status>
 
