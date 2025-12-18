@@ -127,7 +127,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
             }
 
 			if (isset($ifAdminStatus[$iIfIndex])) $aInterface['status'] = $ifAdminStatus[$iIfIndex];
-			if (isset($ifPhysAddress[$iIfIndex]) && strlen($ifPhysAddress[$iIfIndex]) == 6)
+			if (isset($ifPhysAddress[$iIfIndex]) && strlen($ifPhysAddress[$iIfIndex]) == 6 && $ifPhysAddress[$iIfIndex] !== "\0\0\0\0\0\0")
 				$aInterface['macaddress'] = vsprintf('%s:%s:%s:%s:%s:%s', str_split(bin2hex($ifPhysAddress[$iIfIndex]), 2));
 			if (isset($ifHighSpeed[$iIfIndex])) $aInterface['interfacespeed_id'] = $ifHighSpeed[$iIfIndex] * 1000000;
 			elseif (isset($ifSpeed[$iIfIndex])) $aInterface['interfacespeed_id'] = $ifSpeed[$iIfIndex];
