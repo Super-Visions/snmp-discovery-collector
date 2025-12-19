@@ -8,6 +8,16 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	public const DeviceLookupFields = ['org_id', 'managementip_id', 'snmpcredentials_id'];
 	/** @var array<string, int> The position of each lookup field in the current CSV file */
 	protected array $aLookupFieldPos = [];
+	/** @var string[] Translation between SNMP and iTop value */
+	protected const StatusTranslation = [
+		1 => 'active',   // up(1)
+		2 => 'inactive', // down(2)
+		3 => null,       // testing(3)
+		4 => null,       // unknown(4)
+		5 => 'active',   // dormant(5)
+		6 => 'active',   // notPresent(6)
+		7 => 'active',   // lowerLayerDown(7)
+	];
 
 	/**
 	 * Retrieve and prepare interfaces discovered by SnmpDiscoveryCollector
@@ -111,6 +121,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 		$ifSpeed = @$oSNMP->walk('.1.3.6.1.2.1.2.2.1.5', true);
 		$ifPhysAddress = @$oSNMP->walk('.1.3.6.1.2.1.2.2.1.6', true);
 		$ifAdminStatus = @$oSNMP->walk('.1.3.6.1.2.1.2.2.1.7', true);
+		$ifOperStatus = @$oSNMP->walk('.1.3.6.1.2.1.2.2.1.8', true);
 
 		// Load from ifXTable
 		$ifName = @$oSNMP->walk('.1.3.6.1.2.1.31.1.1.1.1', true);
@@ -129,6 +140,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 				'mtu' => null,
 			];
 
+			// Prepare interface name
 			if (!empty($ifName[$iIfIndex])) {
 				$aInterface['name'] = $ifName[$iIfIndex];
 
@@ -137,7 +149,12 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
                 $aInterface['name'] = $ifDescr[$iIfIndex];
             }
 
+			// Prepare interface status
 			if (isset($ifAdminStatus[$iIfIndex])) $aInterface['status'] = $ifAdminStatus[$iIfIndex];
+			elseif (isset($ifOperStatus[$iIfIndex])) $aInterface['status'] = $ifOperStatus[$iIfIndex];
+			if(array_key_exists($aInterface['status'], static::StatusTranslation)) $aInterface['status'] = static::StatusTranslation[$aInterface['status']];
+
+			// Load other data from SNMP fields
 			if (isset($ifPhysAddress[$iIfIndex]) && strlen($ifPhysAddress[$iIfIndex]) == 6 && $ifPhysAddress[$iIfIndex] !== "\0\0\0\0\0\0")
 				$aInterface['macaddress'] = vsprintf('%s:%s:%s:%s:%s:%s', str_split(bin2hex($ifPhysAddress[$iIfIndex]), 2));
 			if (isset($ifHighSpeed[$iIfIndex])) $aInterface['interfacespeed_id'] = $ifHighSpeed[$iIfIndex] * 1000000;
