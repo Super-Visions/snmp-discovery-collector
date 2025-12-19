@@ -181,6 +181,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 					$aInterfaces[AggregateLinkCollector::InterfaceList][] = $aInterface;
 					break;
 				default:
+					Utils::Log(LOG_DEBUG, sprintf('Interface %d ifType: %d', $aInterface['name'], $iIfType));
 					$aInterface[VirtualInterfaceCollector::DeviceDestField] = null;
 					$aInterfaces[VirtualInterfaceCollector::InterfaceList][] = $aInterface;
 					break;
