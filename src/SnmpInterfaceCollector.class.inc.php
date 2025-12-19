@@ -159,10 +159,19 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 			 */
 			switch ($iIfType) {
 				case 6: // ethernetCsmacd
+				case 18: // ds1
+				case 23: // ppp
+				case 160: // usb
 					$aInterface[PhysicalInterfaceCollector::DeviceDestField] = null;
-					$aInterface['layer2protocol_id'] = 'Ethernet';
+					$aInterface['layer2protocol_id'] = match ((int) $iIfType) {
+						6 => 'Ethernet',
+						18 => 'DS1',
+						23 => 'PPP',
+						160 => 'USB',
+					};
 					$aInterfaces[PhysicalInterfaceCollector::InterfaceList][] = $aInterface;
 					break;
+				case 54: // propMultiplexor
 				case 161: // ieee8023adLag
 					$aInterface[AggregateLinkCollector::DeviceDestField] = null;
 					$aInterfaces[AggregateLinkCollector::InterfaceList][] = $aInterface;
