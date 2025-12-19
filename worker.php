@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2024 Super-Visions BVBA
+ * @copyright 2024-2026 Super-Visions BVBA
  * @license http://opensource.org/licenses/AGPL-3.0
  */
 

@@ -134,9 +134,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 				$aInterface['name'] = $ifName[$iIfIndex];
 
 				if (isset($ifDescr[$iIfIndex]) && $ifName[$iIfIndex] != $ifDescr[$iIfIndex]) $aInterface['comment'] = $ifDescr[$iIfIndex].PHP_EOL;
-			} elseif (!empty($ifDescr[$iIfIndex])) {
-                $aInterface['name'] = $ifDescr[$iIfIndex];
-            }
+			} elseif (!empty($ifDescr[$iIfIndex])) $aInterface['name'] = $ifDescr[$iIfIndex];
 
 			// Prepare interface status
 			if (isset($ifAdminStatus[$iIfIndex])) $aInterface['status'] = $ifAdminStatus[$iIfIndex];
