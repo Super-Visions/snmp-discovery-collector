@@ -143,16 +143,20 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 			elseif (isset($ifOperStatus[$iIfIndex])) $aInterface['status'] = $ifOperStatus[$iIfIndex];
 			if(array_key_exists($aInterface['status'], static::StatusTranslation)) $aInterface['status'] = static::StatusTranslation[$aInterface['status']];
 
+			// Prepare interface speed
+			if (isset($ifSpeed[$iIfIndex])) $aInterface['interfacespeed_id'] = $ifSpeed[$iIfIndex];
+			if ($aInterface['interfacespeed_id'] == 4294967295) $aInterface['interfacespeed_id'] = null;
+			if (isset($ifHighSpeed[$iIfIndex]) && empty($aInterface['interfacespeed_id']))
+				$aInterface['interfacespeed_id'] = $ifHighSpeed[$iIfIndex] * 1000000;
+			if ($aInterface['interfacespeed_id'] == 0) $aInterface['interfacespeed_id'] = null;
+
 			// Load other data from SNMP fields
 			if (isset($ifPhysAddress[$iIfIndex]) && strlen($ifPhysAddress[$iIfIndex]) == 6 && $ifPhysAddress[$iIfIndex] !== "\0\0\0\0\0\0")
 				$aInterface['macaddress'] = vsprintf('%s:%s:%s:%s:%s:%s', str_split(bin2hex($ifPhysAddress[$iIfIndex]), 2));
-			if (isset($ifHighSpeed[$iIfIndex])) $aInterface['interfacespeed_id'] = $ifHighSpeed[$iIfIndex] * 1000000;
-			elseif (isset($ifSpeed[$iIfIndex])) $aInterface['interfacespeed_id'] = $ifSpeed[$iIfIndex];
 			if (isset($ifAlias[$iIfIndex])) $aInterface['comment'] .= $ifAlias[$iIfIndex];
 			if (isset($ifMtu[$iIfIndex])) $aInterface['mtu'] = $ifMtu[$iIfIndex];
 
 			$aInterface['comment'] = mb_convert_encoding(trim($aInterface['comment']), 'UTF-8', ['UTF-8', 'ISO-8859-1', 'Windows-1252']);
-			if ($aInterface['interfacespeed_id'] == 0 || $aInterface['interfacespeed_id'] = 4294967295) $aInterface['interfacespeed_id'] = null;
 
 			/**
 			 * @see https://www.iana.org/assignments/ianaiftype-mib/ianaiftype-mib
