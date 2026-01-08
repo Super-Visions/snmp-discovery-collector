@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Default values for parameters. Do NOT alter this file, use params.local.xml instead -->
 <parameters>
-	<!-- IP Discovery Application UUID -->
+	<!-- SNMP Discovery Application UUID -->
 	<discovery_application_uuid>0123-4567-89AB-CDEF</discovery_application_uuid>
 
-	<!-- specify a matching system OID for which serial number detection mechanism to use -->
+	<!-- Specify a matching system OID for which serial number detection mechanism to use -->
 	<serial_detection type="array">
 		<item>
 			<!-- HUAWEI-MIB::hwProducts -->
@@ -173,20 +173,20 @@
 		<pattern><![CDATA[/<?(?<email>\b\S+@\S+\b)>?/]]></pattern>
 	</sysContact_mapping>
 
-	<!-- default status for newly discovered network devices -->
+	<!-- Default status for newly discovered network devices -->
 	<default_status>implementation</default_status>
 
-	<!-- additional network devices to discover -->
+	<!-- Additional network devices to discover -->
 	<additional_device_where>status = 'production'</additional_device_where>
 
-	<!-- enable distributed collection -->
+	<!-- Enable distributed collection -->
 	<amqp_enabled>false</amqp_enabled>
 	<amqp_host>localhost</amqp_host>
 	<amqp_port>5672</amqp_port>
 	<amqp_user>guest</amqp_user>
 	<amqp_password>guest</amqp_password>
 
-	<!-- enable interface synchronisation -->
+	<!-- Enable interface synchronisation -->
 	<collect_interfaces>yes</collect_interfaces>
 
 	<json_placeholders>
