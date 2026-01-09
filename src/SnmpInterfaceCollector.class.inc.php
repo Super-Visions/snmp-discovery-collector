@@ -124,7 +124,16 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 				'comment' => '',
 				'macaddress' => null,
 				'interfacespeed_id' => null,
-				'layer2protocol_id' => null,
+				'layer2protocol_id' => match ((int) $iIfType) {
+					default => null,
+					6 => 'Ethernet',    // ethernetCsmacd(6)
+					17 => 'SDLC',       // sdlc(17)
+					18 => 'DS1',        // ds1(18)
+					23, 108 => 'PPP',   // ppp(23), pppMultilinkBundle(108)
+					118 => 'HDLC',      // hdlc(118)
+					150, 166 => 'MPLS', // mplsTunnel(150), mpls(166)
+					160 => 'USB',       // usb(160)
+				},
 				'status' => null,
 				'mtu' => null,
 			];
@@ -161,25 +170,35 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 			 */
 			switch ($iIfType) {
 				case 6: // ethernetCsmacd
+				case 17: // sdlc
 				case 18: // ds1
 				case 23: // ppp
+				case 118: // hdlc
 				case 160: // usb
+				case 295: // microwaveCarrierTermination
+				case 296: // microwaveRadioLinkTerminal
 					$aInterface[PhysicalInterfaceCollector::DeviceDestField] = null;
-					$aInterface['layer2protocol_id'] = match ((int) $iIfType) {
-						6 => 'Ethernet',
-						18 => 'DS1',
-						23 => 'PPP',
-						160 => 'USB',
-					};
 					$aInterfaces[PhysicalInterfaceCollector::InterfaceList][] = $aInterface;
 					break;
+
 				case 54: // propMultiplexor
+				case 108: // pppMultilinkBundle
 				case 161: // ieee8023adLag
+				case 166: // mpls
 					$aInterface[AggregateLinkCollector::DeviceDestField] = null;
 					$aInterfaces[AggregateLinkCollector::InterfaceList][] = $aInterface;
 					break;
+
+				case 1: // other
+				case 24: // softwareLoopback
+				case 53: // propVirtual
+				case 131: // tunnel
+				case 135: // l2vlan
+				case 142: // ipForward
+				case 150: // mplsTunnel
+					$bKnownIfType = true;
 				default:
-					Utils::Log(LOG_DEBUG, sprintf('Interface %s ifType: %d', $aInterface['name'], $iIfType));
+					if(!$bKnownIfType) Utils::Log(LOG_NOTICE, sprintf('Interface %s unknown ifType: %d', $aInterface['name'], $iIfType));
 					$aInterface[VirtualInterfaceCollector::DeviceDestField] = null;
 					$aInterfaces[VirtualInterfaceCollector::InterfaceList][] = $aInterface;
 					break;
