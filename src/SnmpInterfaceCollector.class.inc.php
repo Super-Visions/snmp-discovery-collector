@@ -8,16 +8,6 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	public const DeviceLookupFields = ['org_id', 'managementip_id', 'snmpcredentials_id'];
 	/** @var array<string, int> The position of each lookup field in the current CSV file */
 	protected array $aLookupFieldPos = [];
-	/** @var string[] Translation between SNMP and iTop value */
-	protected const StatusTranslation = [
-		1 => 'active',   // up(1)
-		2 => 'inactive', // down(2)
-		3 => null,       // testing(3)
-		4 => null,       // unknown(4)
-		5 => 'active',   // dormant(5)
-		6 => 'active',   // notPresent(6)
-		7 => 'active',   // lowerLayerDown(7)
-	];
 
 	/**
 	 * Retrieve and prepare interfaces discovered by SnmpDiscoveryCollector
@@ -134,8 +124,8 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 					150, 166 => 'MPLS', // mplsTunnel(150), mpls(166)
 					160 => 'USB',       // usb(160)
 				},
-				'status' => null,
-				'mtu' => null,
+				'status' => $ifAdminStatus[$iIfIndex] ?? $ifOperStatus[$iIfIndex] ?? null,
+				'mtu' => $ifMtu[$iIfIndex] ?? null,
 			];
 
 			// Prepare interface name
@@ -146,9 +136,11 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 			} elseif (!empty($ifDescr[$iIfIndex])) $aInterface['name'] = $ifDescr[$iIfIndex];
 
 			// Prepare interface status
-			if (isset($ifAdminStatus[$iIfIndex])) $aInterface['status'] = $ifAdminStatus[$iIfIndex];
-			elseif (isset($ifOperStatus[$iIfIndex])) $aInterface['status'] = $ifOperStatus[$iIfIndex];
-			if(array_key_exists($aInterface['status'], static::StatusTranslation)) $aInterface['status'] = static::StatusTranslation[$aInterface['status']];
+			$aInterface['status'] = match ((int) $aInterface['status']) {
+				1, 5, 6, 7 => 'active', // up(1), dormant(5), notPresent(6), lowerLayerDown(7)
+				2 => 'inactive', // down(2)
+				default => null, // testing(3), unknown(4)
+			};
 
 			// Prepare interface speed
 			if (isset($ifSpeed[$iIfIndex])) $aInterface['interfacespeed_id'] = $ifSpeed[$iIfIndex];
@@ -157,12 +149,12 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 				$aInterface['interfacespeed_id'] = $ifHighSpeed[$iIfIndex] * 1000000;
 			if ($aInterface['interfacespeed_id'] == 0) $aInterface['interfacespeed_id'] = null;
 
-			// Load other data from SNMP fields
+			// Prepare interface MAC address
 			if (isset($ifPhysAddress[$iIfIndex]) && strlen($ifPhysAddress[$iIfIndex]) == 6 && $ifPhysAddress[$iIfIndex] !== "\0\0\0\0\0\0")
 				$aInterface['macaddress'] = vsprintf('%s:%s:%s:%s:%s:%s', str_split(bin2hex($ifPhysAddress[$iIfIndex]), 2));
-			if (isset($ifAlias[$iIfIndex])) $aInterface['comment'] .= $ifAlias[$iIfIndex];
-			if (isset($ifMtu[$iIfIndex])) $aInterface['mtu'] = $ifMtu[$iIfIndex];
 
+			// Prepare interface comment
+			if (isset($ifAlias[$iIfIndex])) $aInterface['comment'] .= $ifAlias[$iIfIndex];
 			$aInterface['comment'] = mb_convert_encoding(trim($aInterface['comment']), 'UTF-8', ['UTF-8', 'ISO-8859-1', 'Windows-1252']);
 
 			/**
