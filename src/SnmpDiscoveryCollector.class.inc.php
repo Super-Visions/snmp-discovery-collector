@@ -10,7 +10,8 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	protected int $iApplicationID;
 	/** @var bool Whether distributed collection is enabled */
 	protected bool $bDistributed;
-	/** @var array<string, array{
+	/**
+	 * @var array<string, array{
 	 *     default_org_id: int,
 	 *     default_networkdevicetype_id: int,
 	 *     snmpcredentials_list: int[],
@@ -44,13 +45,9 @@ class SnmpDiscoveryCollector extends SnmpCollector
 		VirtualInterfaceCollector::InterfaceList => [],
 		PhysicalInterfaceCollector::InterfaceList => [],
 	];
-	/**
-	 * @var array<string, string[]> List of discovered Models ordered by Brand
-	 */
+	/** @var array<string, string[]> List of discovered Models ordered by Brand */
 	public static array $aDiscoveredModels = [];
-	/**
-	 * @var array<string, string[]> List of discovered IOS Versions ordered by Brand
-	 */
+	/** @var array<string, string[]> List of discovered IOS Versions ordered by Brand */
 	public static array $aDiscoveredVersions = [];
 	protected static MappingTable $oSysOidBrandMapping;
 	protected static MappingTable $oSysOidModelMapping;
@@ -59,9 +56,7 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	protected static MappingTable $oSysDescrVersionMapping;
 	protected static LookupTable $oModelLookup;
 	protected static LookupTable $oVersionLookup;
-	/**
-	 * @var array<string, array> Cached list of contacts for each lookup spec
-	 */
+	/** @var array<string, array> Cached list of contacts for each lookup spec */
 	protected static array $aLookupContacts = [];
 	/** @var int Number of times the distributed fetch timed out */
 	protected int $iFetchTimeoutCount = 0;
@@ -293,15 +288,15 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	 */
 	protected function HeaderIsAllowed($sHeader): bool
 	{
-		if (in_array($sHeader, [
+		return match ($sHeader) {
 			'snmp_sysname',
 			'snmp_sysdescr',
 			'snmp_syslocation',
 			'snmp_syscontact',
 			'snmp_sysuptime',
-		])) return true;
-
-		return parent::HeaderIsAllowed($sHeader);
+			=> true,
+			default => parent::HeaderIsAllowed($sHeader),
+		};
 	}
 
 	/**
