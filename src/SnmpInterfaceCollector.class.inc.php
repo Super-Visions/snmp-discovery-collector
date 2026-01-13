@@ -203,6 +203,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 					$aInterfaces[AggregateLinkCollector::InterfaceList][] = $aInterface;
 					break;
 
+				case 0:
 				case 1: // other
 				case 24: // softwareLoopback
 				case 53: // propVirtual
