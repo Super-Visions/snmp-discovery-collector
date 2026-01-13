@@ -72,16 +72,6 @@ abstract class SnmpCollector extends Collector
 	}
 
 	/**
-	 * All fields can be NULL
-	 * @param string $sAttCode
-	 * @return true
-	 */
-	public function AttributeIsNullified($sAttCode)
-	{
-		return true;
-	}
-
-	/**
 	 * @return array|false
 	 */
 	protected function Fetch(): bool|array
