@@ -20,6 +20,11 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 		return parent::Prepare();
 	}
 
+	public function Collect($iMaxChunkSize = 0)
+	{
+		return parent::Collect($iMaxChunkSize * 10);
+	}
+
 	/**
 	 * Allow additional fields to look up the NetworkDevice
 	 * @param string $sHeader
