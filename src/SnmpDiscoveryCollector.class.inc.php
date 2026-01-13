@@ -63,6 +63,8 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	 * @var array<string, array> Cached list of contacts for each lookup spec
 	 */
 	protected static array $aLookupContacts = [];
+	/** @var int Number of times the distributed fetch timed out */
+	protected int $iFetchTimeoutCount = 0;
 
 	/**
 	 * @inheritDoc
@@ -146,10 +148,11 @@ class SnmpDiscoveryCollector extends SnmpCollector
 			try {
 				$this->oChannel->wait(timeout: 60);
 			} catch (AMQPTimeoutException $e) {
-				$this->oChannel->queue_purge($this->sQueue);
+				$this->iFetchTimeoutCount++;
 				Utils::Log(LOG_ERR, $e->getMessage());
 				break;
 			}
+			$this->iFetchTimeoutCount = 0;
 			$sBody = $this->oResponseMessage->getBody();
 			$iKey = $this->oResponseMessage->get('correlation_id');
 			
@@ -161,6 +164,12 @@ class SnmpDiscoveryCollector extends SnmpCollector
 			// Process results
 			if ($aData = json_decode($sBody, true)) return $this->PrepareFetchData($aData);
 			else $this->iFailedIPs++;
+		}
+
+		// Stop distributed polling after 3 consecutive timeouts
+		if ($this->bDistributed && $this->iFetchTimeoutCount >= 3) {
+			$this->oChannel->queue_purge($this->sQueue);
+			$this->bDistributed = false;
 		}
 		
 		// Collect synchronously
@@ -598,6 +607,8 @@ SQL, $this->iApplicationID));
 		// Stop worker when duration is passed
 		if (time() >= $this->iTimeout)
 			$this->oChannel->getConnection()->close();
+//			$this->oChannel->stopConsume();
+
 	}
 	
 	/**
