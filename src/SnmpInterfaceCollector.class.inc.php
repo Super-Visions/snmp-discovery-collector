@@ -38,14 +38,16 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	}
 
 	/**
-	 * Allow mtu field to be NULL
+	 * Allow some fields to be NULL
 	 * @param string $sAttCode
 	 * @return boolean True if the attribute can be skipped, false otherwise
     */
 	public function AttributeIsNullified($sAttCode)
 	{
-		if ($sAttCode === 'mtu') return true;
-		else return parent::AttributeIsNullified($sAttCode);
+		return match ($sAttCode) {
+			default => parent::AttributeIsNullified($sAttCode),
+			'mtu', 'status' => true,
+		};
 	}
 
 	/**
