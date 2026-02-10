@@ -49,6 +49,13 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	public static array $aDiscoveredModels = [];
 	/** @var array<string, string[]> List of discovered IOS Versions ordered by Brand */
 	public static array $aDiscoveredVersions = [];
+	/** @var array<string, array{
+	 *     tag: int,
+	 *     name: string,
+	 *     org_id: int,
+	 * }> List of discovered VLANs
+	 */
+	public static array $aDiscoveredVLANs = [];
 	protected static MappingTable $oSysOidBrandMapping;
 	protected static MappingTable $oSysOidModelMapping;
 	protected static MappingTable $oSysDescrBrandMapping;
@@ -214,8 +221,15 @@ class SnmpDiscoveryCollector extends SnmpCollector
 		 * @return array
 		 */
 		$cPrepareInterface = function (array $aInterface) use ($aData) {
+			// Map VLANs
+			foreach ($aData['vlans_list'] as $sTag => $aVLAN)
+				if (in_array($aInterface['primary_key'], $aVLAN['interfaces_list'])) $aVLANs[] = sprintf('vlan_tag:%d', $sTag);
+			$aInterface['vlans_list'] = implode('|', $aVLANs ?? []);
+			// Prepare primary_key
 			$aInterface['primary_key'] = sprintf('%s - %d', $aData['primary_key'], $aInterface['primary_key']);
+			// Copy fields used for device lookup
 			foreach (SnmpInterfaceCollector::DeviceLookupFields as $sField) $aInterface[$sField] = $aData[$sField];
+
 			return $aInterface;
 		};
 
@@ -231,6 +245,16 @@ class SnmpDiscoveryCollector extends SnmpCollector
 		if (!isset(static::$aDiscoveredVersions[$sBrand])) static::$aDiscoveredVersions[$sBrand] = [$sVersion];
 		elseif (!in_array($sVersion, static::$aDiscoveredVersions[$sBrand])) static::$aDiscoveredVersions[$sBrand][] = $sVersion;
 
+		// Prepare data for VLAN collection
+		foreach ($aData['vlans_list'] as $iTag => $aVLAN) {
+			$sVLANKey = sprintf('%d - %d', $iTag, $aData['org_id']);
+			if (!isset(static::$aDiscoveredVLANs[$sVLANKey])) static::$aDiscoveredVLANs[$sVLANKey] = [
+				'tag' => $iTag,
+				'name' => $aVLAN['name'],
+				'org_id' => $aData['org_id'],
+			];
+		}
+
 		// Prepare data for interface collection
 		foreach (array_keys(static::$aDiscoveredInterfaces) as $sField)
 			if (isset($aData[$sField])) {
@@ -238,6 +262,7 @@ class SnmpDiscoveryCollector extends SnmpCollector
 				unset($aData[$sField]);
 			}
 
+		unset($aData['vlans_list']);
 		return $aData;
 	}
 	
@@ -740,6 +765,7 @@ SQL, $this->iApplicationID));
 					'snmp_syscontact' => $sSysContact,
 					'snmp_sysuptime' => (int) round($sSysUptime/100),
 					'contacts_list' => json_encode($aContacts),
+					'vlans_list' => SnmpVlanCollector::CollectVLANs($oSNMP),
 				] + SnmpInterfaceCollector::CollectInterfaces($oSNMP);
 			}
 		}
