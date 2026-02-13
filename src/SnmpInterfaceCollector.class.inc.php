@@ -116,17 +116,13 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 		$aFoundVLANLinks = [];
 		foreach ($aLookupVLANLinks as $iLineIndex => $aVLANLink) {
 			$aVLANLink['vlan_id']['id'] = null;
-
 			$aVLANLineDataHeaders = array_keys($aVLANLink['vlan_id']);
-			if ($iLineIndex === 0) {
-				$this->oVLANLookup->Lookup($aVLANLineDataHeaders, ['vlan_tag', 'org_id'], 'id', 0);
-			} else {
-				$aVLANLineData = array_values($aVLANLink['vlan_id']);
-				if ($this->oVLANLookup->Lookup($aVLANLineData, ['vlan_tag', 'org_id'], 'id', $iLineIndex+1)) {
-					$aVLANLink['vlan_id'] = $aVLANLineData[array_search('id', $aVLANLineDataHeaders)];
+			$aVLANLineData = array_values($aVLANLink['vlan_id']);
 
-					$aFoundVLANLinks[] = $aVLANLink;
-				}
+			if ($iLineIndex === 0) $this->oVLANLookup->Lookup($aVLANLineDataHeaders, ['vlan_tag', 'org_id'], 'id', 0);
+			if ($this->oVLANLookup->Lookup($aVLANLineData, ['vlan_tag', 'org_id'], 'id', $iLineIndex+1)) {
+				$aVLANLink['vlan_id'] = $aVLANLineData[array_search('id', $aVLANLineDataHeaders)];
+				$aFoundVLANLinks[] = $aVLANLink;
 			}
 		}
 
