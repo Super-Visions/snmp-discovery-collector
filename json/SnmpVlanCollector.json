@@ -38,7 +38,7 @@
       "attcode": "name",
       "update": "1",
       "reconcile": "0",
-      "update_policy": "write_if_empty",
+      "update_policy": "master_unlocked",
       "finalclass": "SynchroAttribute"
     },
     {
@@ -62,7 +62,7 @@
     },
     {
       "attcode": "physicalinterfaces_list",
-      "update": "o",
+      "update": "0",
       "reconcile": "0",
       "update_policy": "master_locked",
       "row_separator": "|",
@@ -75,7 +75,7 @@
       "attcode": "status",
       "update": "1",
       "reconcile": "0",
-      "update_policy": "master_unlocked",
+      "update_policy": "master_locked",
       "finalclass": "SynchroAttribute"
     },
     {

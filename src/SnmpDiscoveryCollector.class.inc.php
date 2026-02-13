@@ -248,11 +248,26 @@ class SnmpDiscoveryCollector extends SnmpCollector
 		// Prepare data for VLAN collection
 		foreach ($aData['vlans_list'] as $iTag => $aVLAN) {
 			$sVLANKey = sprintf('%d - %d', $iTag, $aData['org_id']);
+			$sNamePattern = sprintf('/^(VLAN 0*%d)?$/', $iTag);
+			$sName = $aVLAN['name'] ?? '';
+
+			// New discovered VLAN
 			if (!isset(static::$aDiscoveredVLANs[$sVLANKey])) static::$aDiscoveredVLANs[$sVLANKey] = [
 				'tag' => $iTag,
-				'name' => $aVLAN['name'],
+				'name' => $sName,
 				'org_id' => $aData['org_id'],
+				'used' => false,
 			];
+
+			// Update VLAN name if needed
+			elseif (
+				empty(static::$aDiscoveredVLANs[$sVLANKey]['name'])
+				|| !preg_match($sNamePattern, $sName)
+				&& (preg_match($sNamePattern, static::$aDiscoveredVLANs[$sVLANKey]['name']) || $sName < static::$aDiscoveredVLANs[$sVLANKey]['name'])
+			) static::$aDiscoveredVLANs[$sVLANKey]['name'] = $sName;
+
+			// Update usage
+			static::$aDiscoveredVLANs[$sVLANKey]['used'] |= !empty($aVLAN['interfaces_list']);
 		}
 
 		// Prepare data for interface collection

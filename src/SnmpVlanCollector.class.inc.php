@@ -9,9 +9,13 @@ class SnmpVlanCollector extends SnmpCollector
 	public function Prepare(): bool
 	{
 		foreach (SnmpDiscoveryCollector::$aDiscoveredVLANs as $sKey => $aVLAN) {
-			$aVLAN['primary_key'] = $sKey;
-			$aVLAN['status'] = 'used';
-			$this->aData[] = $aVLAN;
+			$this->aData[] = [
+				'primary_key' => $sKey,
+				'vlan_tag' => $aVLAN['tag'],
+				'name' => $aVLAN['name'],
+				'org_id' => $aVLAN['org_id'],
+				'status' => $aVLAN['used'] ? 'used' : 'reserved',
+			];
 		}
 
 		return parent::Prepare();
@@ -37,6 +41,13 @@ class SnmpVlanCollector extends SnmpCollector
 		$dot1qVlanCurrentEgressPorts = @$oSNMP->walk('.1.3.6.1.2.1.17.7.1.4.2.1.4', true);
 		$dot1qVlanStaticName = @$oSNMP->walk('.1.3.6.1.2.1.17.7.1.4.3.1.1', true);
 
+		if ($dot1qVlanStaticName !== false) foreach ($dot1qVlanStaticName as $iTag => $sVLAN) {
+			$aVLANs[$iTag] = [
+				'name' => ($sVLAN != $iTag) ? $sVLAN : '',
+				'interfaces_list' => [],
+			];
+		}
+
 		if ($dot1qVlanCurrentEgressPorts !== false) foreach ($dot1qVlanCurrentEgressPorts as $sCurrentEntry => $sEgressPorts) {
 			$aInterfaces = [];
 			$iOffset = 0;
@@ -51,10 +62,7 @@ class SnmpVlanCollector extends SnmpCollector
 			}
 
 			$iTag = explode('.', $sCurrentEntry)[1];
-			$aVLANs[$iTag] = [
-				'name' => $dot1qVlanStaticName[$iTag] ?? $iTag,
-				'interfaces_list' => $aInterfaces,
-			];
+			$aVLANs[$iTag]['interfaces_list'] = $aInterfaces;
 		}
 
 		Utils::Log(LOG_DEBUG, sprintf('%d VLANs collected', count($aVLANs)));
