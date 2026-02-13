@@ -39,33 +39,50 @@ class SnmpVlanCollector extends SnmpCollector
 
 		$dot1dBasePortIfIndex = @$oSNMP->walk('.1.3.6.1.2.1.17.1.4.1.2', true);
 		$dot1qVlanCurrentEgressPorts = @$oSNMP->walk('.1.3.6.1.2.1.17.7.1.4.2.1.4', true);
+		$dot1qVlanCurrentUntaggedPorts = @$oSNMP->walk('.1.3.6.1.2.1.17.7.1.4.2.1.5', true);
 		$dot1qVlanStaticName = @$oSNMP->walk('.1.3.6.1.2.1.17.7.1.4.3.1.1', true);
 
 		if ($dot1qVlanStaticName !== false) foreach ($dot1qVlanStaticName as $iTag => $sVLAN) {
 			$aVLANs[$iTag] = [
 				'name' => ($sVLAN != $iTag) ? $sVLAN : '',
 				'interfaces_list' => [],
+				'untagged_interfaces_list' => [],
 			];
 		}
 
 		if ($dot1qVlanCurrentEgressPorts !== false) foreach ($dot1qVlanCurrentEgressPorts as $sCurrentEntry => $sEgressPorts) {
-			$aInterfaces = [];
-			$iOffset = 0;
-			foreach (unpack('C*', $sEgressPorts) as $iEgressPort) {
-				foreach ([128, 64, 32, 16, 8, 4, 2, 1] as $iBitIndex => $iBit) {
-					if ($iEgressPort & $iBit){
-						$iPortIndex = $iOffset + $iBitIndex + 1;
-						if (isset($dot1dBasePortIfIndex[$iPortIndex])) $aInterfaces[] = $dot1dBasePortIfIndex[$iPortIndex];
-					}
-				}
-				$iOffset += 8;
-			}
+			$iTag = (int) explode('.', $sCurrentEntry)[1];
+			$aVLANs[$iTag]['interfaces_list'] = static::MapPortListToInterfaces($sEgressPorts, $dot1dBasePortIfIndex);
+		}
 
-			$iTag = explode('.', $sCurrentEntry)[1];
-			$aVLANs[$iTag]['interfaces_list'] = $aInterfaces;
+		if ($dot1qVlanCurrentUntaggedPorts !== false) foreach ($dot1qVlanCurrentUntaggedPorts as $sCurrentEntry => $sUntaggedPorts) {
+			$iTag = (int) explode('.', $sCurrentEntry)[1];
+			$aVLANs[$iTag]['untagged_interfaces_list'] = static::MapPortListToInterfaces($sUntaggedPorts, $dot1dBasePortIfIndex);
 		}
 
 		Utils::Log(LOG_DEBUG, sprintf('%d VLANs collected', count($aVLANs)));
 		return $aVLANs;
+	}
+
+	/**
+	 * @param string $sPortList Octet string of port mappings
+	 * @param array $dot1dBasePortIfIndex
+	 * @return array
+	 */
+	protected static function MapPortListToInterfaces(string $sPortList, array $dot1dBasePortIfIndex): array
+	{
+		$aInterfaces = [];
+		$iOffset = 0;
+		foreach (unpack('C*', $sPortList) as $iPortList) {
+			foreach ([128, 64, 32, 16, 8, 4, 2, 1] as $iBitIndex => $iBit) {
+				if ($iPortList & $iBit){
+					$iPortIndex = $iOffset + $iBitIndex + 1;
+					if (isset($dot1dBasePortIfIndex[$iPortIndex])) $aInterfaces[] = $dot1dBasePortIfIndex[$iPortIndex];
+				}
+			}
+			$iOffset += 8;
+		}
+		
+		return $aInterfaces;
 	}
 }
