@@ -24,18 +24,40 @@ class SnmpVlanCollector extends SnmpCollector
 	/**
 	 * Collect device VLANs via SNMP
 	 * @param SNMP $oSNMP
+	 * @param string $sSysObjectID
 	 * @return array<int, array{
 	 *     name: string,
 	 *     interfaces_list: int[],
+	 *     untagged_interfaces_list: int[],
 	 * }>
 	 * @throws Exception
 	 */
-	public static function CollectVLANs(SNMP $oSNMP): array
+	public static function CollectVLANs(SNMP $oSNMP, string $sSysObjectID): array
 	{
 		$aVLANs = [];
 
 		if (!filter_var(Utils::GetConfigurationValue('collect_vlans', false), FILTER_VALIDATE_BOOLEAN)) return $aVLANs;
 		Utils::Log(LOG_DEBUG, "Collecting VLANs...");
+
+		if (str_starts_with($sSysObjectID, '.1.3.6.1.4.1.3375.2.1.3.4')) {
+			$aVLANs = static::LoadF5VLANs($oSNMP);
+		} else {
+			$aVLANs = static::LoadDot1qVLANS($oSNMP);
+		}
+
+		Utils::Log(LOG_DEBUG, sprintf('%d VLANs collected', count($aVLANs)));
+		return $aVLANs;
+	}
+
+
+	/**
+	 * Lookup VLANs using Q-BRIDGE-MIB tables
+	 * @param SNMP $oSNMP
+	 * @return array
+	 */
+	protected static function LoadDot1qVLANS(SNMP $oSNMP): array
+	{
+		$aVLANs = [];
 
 		$dot1dBasePortIfIndex = @$oSNMP->walk('.1.3.6.1.2.1.17.1.4.1.2', true);
 		$dot1qVlanCurrentEgressPorts = @$oSNMP->walk('.1.3.6.1.2.1.17.7.1.4.2.1.4', true);
@@ -72,7 +94,46 @@ class SnmpVlanCollector extends SnmpCollector
 			$aVLANs[$iTag]['untagged_interfaces_list'] += static::MapPortListToInterfaces($sUntaggedPorts, $dot1dBasePortIfIndex);
 		}
 
-		Utils::Log(LOG_DEBUG, sprintf('%d VLANs collected', count($aVLANs)));
+		return $aVLANs;
+	}
+
+	/**
+	 * Specific VLAN lookup for F5 BIG-IP devices
+	 * @param SNMP $oSNMP
+	 * @return array
+	 */
+	protected static function LoadF5VLANs(SNMP $oSNMP): array
+	{
+		$aVLANs = [];
+		$aVLANTagLookup = [];
+
+		$ifName = @$oSNMP->walk('.1.3.6.1.2.1.31.1.1.1.1', true);
+
+		$sysVlanVname = @$oSNMP->walk('.1.3.6.1.4.1.3375.2.1.2.13.1.2.1.1', true);
+		$sysVlanId = @$oSNMP->walk('.1.3.6.1.4.1.3375.2.1.2.13.1.2.1.2', true);
+		$sysVlanMemberVmname = @$oSNMP->walk('.1.3.6.1.4.1.3375.2.1.2.13.2.2.1.1', true);
+		$sysVlanMemberTagged = @$oSNMP->walk('.1.3.6.1.4.1.3375.2.1.2.13.2.2.1.3', true);
+
+		if ($sysVlanId !== false) foreach ($sysVlanId as $sIndex => $iTag) {
+			$aVLANs[$iTag] = [
+				'name' => $sysVlanVname[$sIndex] ?? '',
+				'interfaces_list' => [],
+				'untagged_interfaces_list' => [],
+			];
+			$aVLANTagLookup[$sIndex] = $iTag;
+		}
+
+		if ($sysVlanMemberVmname !== false) foreach ($sysVlanMemberVmname as $sMemberIndex => $sName) {
+			$iIfIndex = array_search($sName, $ifName, true);
+
+			foreach ($aVLANTagLookup as $sTagIndex => $iTag) if (str_starts_with($sMemberIndex, $sTagIndex)) {
+				$aVLANs[$iTag]['interfaces_list'][] = $iIfIndex;
+				if ($sysVlanMemberTagged !== false && $sysVlanMemberTagged[$sMemberIndex] === 0)
+					$aVLANs[$iTag]['untagged_interfaces_list'][] = $iIfIndex;
+				break;
+			}
+		}
+
 		return $aVLANs;
 	}
 
