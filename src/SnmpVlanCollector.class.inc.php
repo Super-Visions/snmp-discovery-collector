@@ -41,6 +41,8 @@ class SnmpVlanCollector extends SnmpCollector
 		$dot1qVlanCurrentEgressPorts = @$oSNMP->walk('.1.3.6.1.2.1.17.7.1.4.2.1.4', true);
 		$dot1qVlanCurrentUntaggedPorts = @$oSNMP->walk('.1.3.6.1.2.1.17.7.1.4.2.1.5', true);
 		$dot1qVlanStaticName = @$oSNMP->walk('.1.3.6.1.2.1.17.7.1.4.3.1.1', true);
+		$dot1qVlanStaticEgressPorts = @$oSNMP->walk('.1.3.6.1.2.1.17.7.1.4.3.1.2', true);
+		$dot1qVlanStaticUntaggedPorts = @$oSNMP->walk('1.3.6.1.2.1.17.7.1.4.3.1.4', true);
 
 		if ($dot1qVlanStaticName !== false) foreach ($dot1qVlanStaticName as $iTag => $sVLAN) {
 			$aVLANs[$iTag] = [
@@ -50,14 +52,24 @@ class SnmpVlanCollector extends SnmpCollector
 			];
 		}
 
+		if ($dot1qVlanStaticEgressPorts !== false) foreach ($dot1qVlanStaticEgressPorts as $iTag => $sEgressPorts) {
+			$aVLANs[$iTag]['interfaces_list'] = static::MapPortListToInterfaces($sEgressPorts, $dot1dBasePortIfIndex);
+		}
+
+		if ($dot1qVlanStaticUntaggedPorts !== false) foreach ($dot1qVlanStaticUntaggedPorts as $iTag => $sUntaggedPorts) {
+			$aVLANs[$iTag]['untagged_interfaces_list'] = static::MapPortListToInterfaces($sUntaggedPorts, $dot1dBasePortIfIndex);
+		}
+
 		if ($dot1qVlanCurrentEgressPorts !== false) foreach ($dot1qVlanCurrentEgressPorts as $sCurrentEntry => $sEgressPorts) {
 			$iTag = (int) explode('.', $sCurrentEntry)[1];
-			$aVLANs[$iTag]['interfaces_list'] = static::MapPortListToInterfaces($sEgressPorts, $dot1dBasePortIfIndex);
+			if (!isset($aVLANs[$iTag]['interfaces_list'])) $aVLANs[$iTag]['interfaces_list'] = [];
+			$aVLANs[$iTag]['interfaces_list'] += static::MapPortListToInterfaces($sEgressPorts, $dot1dBasePortIfIndex);
 		}
 
 		if ($dot1qVlanCurrentUntaggedPorts !== false) foreach ($dot1qVlanCurrentUntaggedPorts as $sCurrentEntry => $sUntaggedPorts) {
 			$iTag = (int) explode('.', $sCurrentEntry)[1];
-			$aVLANs[$iTag]['untagged_interfaces_list'] = static::MapPortListToInterfaces($sUntaggedPorts, $dot1dBasePortIfIndex);
+			if (!isset($aVLANs[$iTag]['untagged_interfaces_list'])) $aVLANs[$iTag]['untagged_interfaces_list'] = [];
+			$aVLANs[$iTag]['untagged_interfaces_list'] += static::MapPortListToInterfaces($sUntaggedPorts, $dot1dBasePortIfIndex);
 		}
 
 		Utils::Log(LOG_DEBUG, sprintf('%d VLANs collected', count($aVLANs)));
@@ -77,7 +89,7 @@ class SnmpVlanCollector extends SnmpCollector
 			foreach ([128, 64, 32, 16, 8, 4, 2, 1] as $iBitIndex => $iBit) {
 				if ($iPortList & $iBit){
 					$iPortIndex = $iOffset + $iBitIndex + 1;
-					if (isset($dot1dBasePortIfIndex[$iPortIndex])) $aInterfaces[] = $dot1dBasePortIfIndex[$iPortIndex];
+					if (isset($dot1dBasePortIfIndex[$iPortIndex])) $aInterfaces[$iPortIndex] = $dot1dBasePortIfIndex[$iPortIndex];
 				}
 			}
 			$iOffset += 8;
