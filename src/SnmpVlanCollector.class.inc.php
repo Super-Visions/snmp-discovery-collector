@@ -39,6 +39,7 @@ class SnmpVlanCollector extends SnmpCollector
 		if (!filter_var(Utils::GetConfigurationValue('collect_vlans', false), FILTER_VALIDATE_BOOLEAN)) return $aVLANs;
 		Utils::Log(LOG_DEBUG, "Collecting VLANs...");
 
+		// F5-BIGIP-SYSTEM-MIB::sysDeviceModelOIDs
 		if (str_starts_with($sSysObjectID, '.1.3.6.1.4.1.3375.2.1.3.4')) {
 			$aVLANs = static::LoadF5VLANs($oSNMP);
 		} else {
@@ -59,9 +60,12 @@ class SnmpVlanCollector extends SnmpCollector
 	{
 		$aVLANs = [];
 
+		// BRIDGE-MIB::dot1dBasePortTable
 		$dot1dBasePortIfIndex = @$oSNMP->walk('.1.3.6.1.2.1.17.1.4.1.2', true);
+		// Q-BRIDGE-MIB::dot1qVlanCurrentTable
 		$dot1qVlanCurrentEgressPorts = @$oSNMP->walk('.1.3.6.1.2.1.17.7.1.4.2.1.4', true);
 		$dot1qVlanCurrentUntaggedPorts = @$oSNMP->walk('.1.3.6.1.2.1.17.7.1.4.2.1.5', true);
+		// Q-BRIDGE-MIB::dot1qVlanStaticTable
 		$dot1qVlanStaticName = @$oSNMP->walk('.1.3.6.1.2.1.17.7.1.4.3.1.1', true);
 		$dot1qVlanStaticEgressPorts = @$oSNMP->walk('.1.3.6.1.2.1.17.7.1.4.3.1.2', true);
 		$dot1qVlanStaticUntaggedPorts = @$oSNMP->walk('1.3.6.1.2.1.17.7.1.4.3.1.4', true);
@@ -107,10 +111,12 @@ class SnmpVlanCollector extends SnmpCollector
 		$aVLANs = [];
 		$aVLANTagLookup = [];
 
+		// IF-MIB::ifXTable
 		$ifName = @$oSNMP->walk('.1.3.6.1.2.1.31.1.1.1.1', true);
-
+		// F5-BIGIP-SYSTEM-MIB::sysVlanTable
 		$sysVlanVname = @$oSNMP->walk('.1.3.6.1.4.1.3375.2.1.2.13.1.2.1.1', true);
 		$sysVlanId = @$oSNMP->walk('.1.3.6.1.4.1.3375.2.1.2.13.1.2.1.2', true);
+		// F5-BIGIP-SYSTEM-MIB::sysVlanMemberTable
 		$sysVlanMemberVmname = @$oSNMP->walk('.1.3.6.1.4.1.3375.2.1.2.13.2.2.1.1', true);
 		$sysVlanMemberTagged = @$oSNMP->walk('.1.3.6.1.4.1.3375.2.1.2.13.2.2.1.3', true);
 

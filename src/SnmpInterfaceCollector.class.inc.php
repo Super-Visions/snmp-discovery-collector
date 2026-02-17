@@ -5,7 +5,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	/** @var LookupTable Lookup table for NetworkDevice */
 	protected LookupTable $oDeviceLookup;
 	/** @var string[] Fields to be used for NetworkDevice lookup */
-	public const DeviceLookupFields = ['org_id', 'managementip_id', 'snmpcredentials_id'];
+	public const array DeviceLookupFields = ['org_id', 'managementip_id', 'snmpcredentials_id'];
 	/** @var array<string, int> The position of each lookup field in the current CSV file */
 	protected array $aLookupFieldPos = [];
 	/** @var LookupTable Lookup table for VLAN */
