@@ -8,6 +8,7 @@ class SnmpVlanCollector extends SnmpCollector
 	 */
 	public function Prepare(): bool
 	{
+		ksort(SnmpDiscoveryCollector::$aDiscoveredVLANs, SORT_NATURAL);
 		foreach (SnmpDiscoveryCollector::$aDiscoveredVLANs as $sKey => $aVLAN) {
 			$this->aData[] = [
 				'primary_key' => $sKey,
