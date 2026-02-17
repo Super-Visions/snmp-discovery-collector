@@ -43,6 +43,9 @@ class SnmpVlanCollector extends SnmpCollector
 		// F5-BIGIP-SYSTEM-MIB::sysDeviceModelOIDs
 		if (str_starts_with($sSysObjectID, '.1.3.6.1.4.1.3375.2.1.3.4')) {
 			$aVLANs = static::LoadF5VLANs($oSNMP);
+		// TIMETRA-GLOBAL-MIB::timetraServiceRouters
+		} elseif (str_starts_with($sSysObjectID, '.1.3.6.1.4.1.6527.1.3')) {
+			$aVLANs = static::LoadNokiaVLANs($oSNMP);
 		} else {
 			$aVLANs = static::LoadDot1qVLANS($oSNMP, $sSysObjectID);
 		}
@@ -143,6 +146,38 @@ class SnmpVlanCollector extends SnmpCollector
 					$aVLANs[$iTag]['untagged_interfaces_list'][] = $iIfIndex;
 				break;
 			}
+		}
+
+		return $aVLANs;
+	}
+
+	/**
+	 * Specific VLAN lookup for Nokia service routers
+	 * @param SNMP $oSNMP
+	 * @return array
+	 */
+	protected static function LoadNokiaVLANs(SNMP $oSNMP): array
+	{
+		$aVLANs = [];
+		$aPortEncapTypes = [];
+
+		// TIMETRA-PORT-MIB::tmnxPortTable
+		$tmnxPortEncapType = @$oSNMP->walk('.1.3.6.1.4.1.6527.3.1.2.2.4.2.1.12', true);
+		// TIMETRA-SAP-MIB::sapBaseInfoTable
+		$sapPortId = @$oSNMP->walk('.1.3.6.1.4.1.6527.3.1.2.4.3.2.1.1', true);
+		$sapEncapValue = @$oSNMP->walk('.1.3.6.1.4.1.6527.3.1.2.4.3.2.1.2', true);
+
+		if ($tmnxPortEncapType !== false) foreach ($tmnxPortEncapType as $sIndex => $iEncapType) {
+			$aIndex = explode('.', $sIndex);
+			$aPortEncapTypes[end($aIndex)] = $iEncapType;
+		}
+
+		if ($sapEncapValue !== false) foreach ($sapEncapValue as $sIndex => $iTag) {
+			$iPortId = $sapPortId[$sIndex] ?? null;
+			$iTag &= 0xFFF;
+
+			if ($iTag && ($aPortEncapTypes[$iPortId] ?? null) == 2)
+				$aVLANs[$iTag]['interfaces_list'][] = $iPortId;
 		}
 
 		return $aVLANs;
