@@ -20,7 +20,12 @@ Orchestrator::AddRequirement('8.1', 'snmp');
 Orchestrator::AddCollector($iOrder++, ModelCollector::class);
 Orchestrator::AddCollector($iOrder++, IOSVersionCollector::class);
 Orchestrator::AddCollector($iOrder++, SnmpDiscoveryCollector::class);
-Orchestrator::AddCollector($iOrder++, SnmpVlanCollector::class);
-Orchestrator::AddCollector($iOrder++, PhysicalInterfaceCollector::class);
-Orchestrator::AddCollector($iOrder++, VirtualInterfaceCollector::class);
-Orchestrator::AddCollector($iOrder++, AggregateLinkCollector::class);
+
+if (filter_var(Utils::GetConfigurationValue('collect_vlans', false), FILTER_VALIDATE_BOOLEAN))
+	Orchestrator::AddCollector($iOrder++, SnmpVlanCollector::class);
+
+if (filter_var(Utils::GetConfigurationValue('collect_interfaces', false), FILTER_VALIDATE_BOOLEAN)) {
+	Orchestrator::AddCollector($iOrder++, PhysicalInterfaceCollector::class);
+	Orchestrator::AddCollector($iOrder++, VirtualInterfaceCollector::class);
+	Orchestrator::AddCollector($iOrder++, AggregateLinkCollector::class);
+}
