@@ -27,9 +27,9 @@ class SnmpVlanCollector extends SnmpCollector
 	 * @param SNMP $oSNMP
 	 * @param string $sSysObjectID
 	 * @return array<int, array{
-	 *     name: string,
+	 *     name?: string,
 	 *     interfaces_list: int[],
-	 *     untagged_interfaces_list: int[],
+	 *     untagged_interfaces_list?: int[],
 	 * }>
 	 * @throws Exception
 	 */
@@ -187,7 +187,7 @@ class SnmpVlanCollector extends SnmpCollector
 	 * @param string $sPortList Octet string of port mappings
 	 * @param array $dot1dBasePortIfIndex
 	 * @param string $sSysObjectID
-	 * @return array
+	 * @return int[]
 	 */
 	protected static function MapPortListToInterfaces(string $sPortList, array $dot1dBasePortIfIndex, string $sSysObjectID): array
 	{
