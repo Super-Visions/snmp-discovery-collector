@@ -53,6 +53,7 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	 *     tag: int,
 	 *     name: string,
 	 *     org_id: int,
+	 *     used: bool,
 	 * }> List of discovered VLANs
 	 */
 	public static array $aDiscoveredVLANs = [];
