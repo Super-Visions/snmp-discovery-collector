@@ -784,7 +784,7 @@ SQL, $this->iApplicationID));
 					'snmp_syscontact' => $sSysContact,
 					'snmp_sysuptime' => (int) round($sSysUptime/100),
 					'contacts_list' => json_encode($aContacts),
-					'vlans_list' => SnmpVlanCollector::CollectVLANs($oSNMP, $sysObjectID),
+					'vlans_list' => VlanCollector::CollectVLANs($oSNMP, $sysObjectID),
 				] + SnmpInterfaceCollector::CollectInterfaces($oSNMP);
 			}
 		}

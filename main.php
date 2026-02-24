@@ -10,7 +10,7 @@ require_once(__DIR__.'/src/SnmpCredentials.class.inc.php');
 require_once(__DIR__.'/src/SnmpCollector.php');
 require_once(__DIR__.'/src/SnmpDiscoveryCollector.class.inc.php');
 require_once(__DIR__.'/src/SnmpInterfaceCollector.class.inc.php');
-require_once(__DIR__.'/src/SnmpVlanCollector.class.inc.php');
+require_once(__DIR__.'/src/VlanCollector.class.inc.php');
 require_once(__DIR__.'/src/IOSVersionCollector.class.inc.php');
 require_once(__DIR__.'/src/ModelCollector.class.inc.php');
 
@@ -22,7 +22,7 @@ Orchestrator::AddCollector($iOrder++, IOSVersionCollector::class);
 Orchestrator::AddCollector($iOrder++, SnmpDiscoveryCollector::class);
 
 if (filter_var(Utils::GetConfigurationValue('collect_vlans', false), FILTER_VALIDATE_BOOLEAN))
-	Orchestrator::AddCollector($iOrder++, SnmpVlanCollector::class);
+	Orchestrator::AddCollector($iOrder++, VlanCollector::class);
 
 if (filter_var(Utils::GetConfigurationValue('collect_interfaces', false), FILTER_VALIDATE_BOOLEAN)) {
 	Orchestrator::AddCollector($iOrder++, PhysicalInterfaceCollector::class);

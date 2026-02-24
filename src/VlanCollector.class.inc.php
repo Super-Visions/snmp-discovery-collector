@@ -1,6 +1,6 @@
 <?php
 
-class SnmpVlanCollector extends SnmpCollector
+class VlanCollector extends SnmpCollector
 {
 	/**
 	 * Retrieve and prepare VLANs discovered by {@see SnmpDiscoveryCollector}
