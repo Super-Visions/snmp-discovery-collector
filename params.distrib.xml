@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="doc/schema.xsd"?>
 <!-- Default values for parameters. Do NOT alter this file, use params.local.xml instead -->
 <parameters>
 	<!-- SNMP Discovery Application UUID -->
@@ -190,7 +191,6 @@
 	<collect_interfaces>yes</collect_interfaces>
 
 	<json_placeholders>
-		<prefix/>
 		<uuid>$discovery_application_uuid$</uuid>
 		<synchro_status>production</synchro_status>
 		<full_load_interval>3600</full_load_interval>

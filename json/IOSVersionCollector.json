@@ -1,5 +1,5 @@
 {
-    "name": "$prefix$SNMP IOS Version - $uuid$",
+    "name": "SNMP IOS Version - $uuid$",
     "description": "SNMP Discovery v$version$",
     "status": "$synchro_status$",
     "user_id": "$synchro_user$",
