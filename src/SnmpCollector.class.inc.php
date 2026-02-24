@@ -29,8 +29,9 @@ abstract class SnmpCollector extends Collector
 	public function GetSynchroDataSourceDefinition($aPlaceHolders = []): string|false
 	{
 		$aPlaceHolders['$uuid$'] = Utils::GetConfigurationValue('discovery_application_uuid');
+		$aPlaceHolders['$url_icon$'] = sprintf('%s/env-production/sv-snmp-discovery/images/icons8-switch-48-search.png', Utils::GetConfigurationValue('itop_url'));
 
-		return Collector::GetSynchroDataSourceDefinition($aPlaceHolders);
+		return parent::GetSynchroDataSourceDefinition($aPlaceHolders);
 	}
 
 	/**

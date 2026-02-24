@@ -47,6 +47,6 @@
         }
     ],
     "user_delete_policy": "administrators",
-    "url_icon": "",
+    "url_icon": "$url_icon$",
     "url_application": ""
 }
