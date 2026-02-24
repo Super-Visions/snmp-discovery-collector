@@ -1,13 +1,13 @@
 <?php
 /**
- * @copyright 2024-2025 Super-Visions BVBA
+ * @copyright 2024-2026 Super-Visions BVBA
  * @license http://opensource.org/licenses/AGPL-3.0
  * @noinspection PhpUnhandledExceptionInspection
  */
 
 require_once(__DIR__.'/vendor/autoload.php');
 require_once(__DIR__.'/src/SnmpCredentials.class.inc.php');
-require_once(__DIR__.'/src/SnmpCollector.php');
+require_once(__DIR__.'/src/SnmpCollector.class.inc.php');
 require_once(__DIR__.'/src/SnmpDiscoveryCollector.class.inc.php');
 require_once(__DIR__.'/src/SnmpInterfaceCollector.class.inc.php');
 require_once(__DIR__.'/src/IOSVersionCollector.class.inc.php');
