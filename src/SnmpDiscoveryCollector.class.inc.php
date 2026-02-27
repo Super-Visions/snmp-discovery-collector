@@ -810,7 +810,7 @@ SQL, $this->oPlan->GetApplicationID()));
 		}
 
 		$oClient = new RestClient();
-		$aLookupContacts = json_decode($aLineData[$iDestFieldPos]);
+		$aLookupContacts = json_decode($aLineData[$iDestFieldPos], true);
 		$aContacts = [];
 
 		foreach ($aLookupContacts as $aKeySpec) {
@@ -825,7 +825,8 @@ SQL, $this->oPlan->GetApplicationID()));
 					} elseif (!empty($aResults['objects'])) foreach ($aResults['objects'] as $aContact) {
 						$aFoundContacts[] = sprintf('contact_id:%d', $aContact['key']);
 					} else {
-						Utils::Log(LOG_WARNING, sprintf('Could not retrieve contact information for %s', json_encode($aKeySpec)));
+						$iPriority = array_keys($aKeySpec) === ['friendlyname'] ? LOG_DEBUG : LOG_WARNING;
+						Utils::Log($iPriority, sprintf('Could not retrieve contact information for %s', json_encode($aKeySpec)));
 					}
 					static::$aLookupContacts[$sKeySpecHash] = $aFoundContacts;
 					$aContacts += $aFoundContacts;
