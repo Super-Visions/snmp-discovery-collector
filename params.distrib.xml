@@ -193,7 +193,6 @@
 	<collect_interfaces>yes</collect_interfaces>
 
 	<json_placeholders>
-		<prefix/>
 		<uuid>$discovery_application_uuid$</uuid>
 		<synchro_status>production</synchro_status>
 		<full_load_interval>3600</full_load_interval>

@@ -5,7 +5,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	/** @var LookupTable Lookup table for NetworkDevice */
 	protected LookupTable $oDeviceLookup;
 	/** @var string[] Fields to be used for NetworkDevice lookup */
-	public const array DeviceLookupFields = ['org_id', 'managementip_id', 'snmpcredentials_id'];
+	public const DeviceLookupFields = ['org_id', 'managementip_id', 'snmpcredentials_id'];
 	/** @var array<string, int> The position of each lookup field in the current CSV file */
 	protected array $aLookupFieldPos = [];
 	/** @var LookupTable Lookup table for VLAN */
@@ -22,17 +22,12 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 		return parent::Prepare();
 	}
 
-	public function Collect($iMaxChunkSize = 0)
-	{
-		return parent::Collect($iMaxChunkSize * 10);
-	}
-
 	/**
 	 * Allow additional fields to look up the NetworkDevice
 	 * @param string $sHeader
 	 * @return bool
 	 */
-	public function HeaderIsAllowed($sHeader)
+	public function HeaderIsAllowed($sHeader): bool
 	{
 		if (in_array($sHeader, static::DeviceLookupFields)) return true;
 
@@ -41,15 +36,10 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 
 	/**
 	 * Allow some fields to be NULL
-	 * @param string $sAttCode
-	 * @return boolean True if the attribute can be skipped, false otherwise
-    */
-	public function AttributeIsNullified($sAttCode)
+	 */
+	public function ReadCollectorConfig(): void
 	{
-		return match ($sAttCode) {
-			default => parent::AttributeIsNullified($sAttCode),
-			'mtu', 'status' => true,
-		};
+		$this->aCollectorConfig['nullified_attributes'] = ['mtu', 'status'];
 	}
 
 	/**
@@ -64,6 +54,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	/**
 	 * Init needed lookup tables
 	 * @return void
+	 * @throws Exception
 	 */
 	public function InitProcessBeforeSynchro(): void
 	{
@@ -90,7 +81,9 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 		$this->oDeviceLookup->Lookup($aLineData, static::DeviceLookupFields, static::DeviceDestField, $iLineIndex);
 
 		// Lookup field not needed anymore after it has been used for preprocessing
-		foreach ($this->aLookupFieldPos as $iPos) unset($aLineData[$iPos]);
+		foreach ($this->aLookupFieldPos as $iPos)
+			/** @noinspection PhpConditionAlreadyCheckedInspection */
+			unset($aLineData[$iPos]);
 
 		// Lookup VLANs
 		$this->ProcessVLANsLookup($aLineData, $iLineIndex);
@@ -139,6 +132,8 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	 *     aggregatelinks_list: array,
 	 * }
 	 * @throws Exception
+	 * @noinspection SpellCheckingInspection
+	 * @noinspection PhpMissingBreakStatementInspection
 	 */
 	public static function CollectInterfaces(SNMP $oSNMP): array
 	{

@@ -2,10 +2,11 @@
 
 abstract class SnmpCollector extends Collector
 {
+	/** @var SnmpCollectionPlan The current collection plan */
+	protected SnmpCollectionPlan $oPlan;
 	/** @var SnmpCredentials[] Cache of potential SNMP credentials */
 	protected static array $aSnmpCredentials = [];
-
-	/** @var array List of prepared data to be synchronised */
+	/** @var array[] List of prepared data to be synchronised */
 	protected array $aData = [];
 
 	/**
@@ -15,10 +16,9 @@ abstract class SnmpCollector extends Collector
 	 */
 	public function Init(): void
 	{
-		parent::Init();
+		$this->oPlan = SnmpCollectionPlan::GetPlan();
 
-		// Check if modules are installed
-		Utils::CheckModuleInstallation('sv-snmp-discovery/1.3.0', true);
+		parent::Init();
 	}
 
 	/**
@@ -28,9 +28,12 @@ abstract class SnmpCollector extends Collector
 	 */
 	public function GetSynchroDataSourceDefinition($aPlaceHolders = []): string|false
 	{
+		$sURL = Utils::GetConfigurationValue('itop_url');
 		$aPlaceHolders['$uuid$'] = Utils::GetConfigurationValue('discovery_application_uuid');
+		$aPlaceHolders['$url_icon$'] = sprintf('%s/env-production/sv-snmp-discovery/images/icons8-switch-48-search.png', $sURL);
+		$aPlaceHolders['$url_application$'] = sprintf('%s/pages/UI.php?operation=details&class=SNMPDiscovery&id=%d', $sURL, $this->oPlan->GetApplicationID());
 
-		return Collector::GetSynchroDataSourceDefinition($aPlaceHolders);
+		return parent::GetSynchroDataSourceDefinition($aPlaceHolders);
 	}
 
 	/**
@@ -66,19 +69,45 @@ abstract class SnmpCollector extends Collector
 	 * @param string $sHeader
 	 * @return bool
 	 */
-	protected function HeaderIsAllowed($sHeader)
+	protected function HeaderIsAllowed($sHeader): bool
 	{
 		return array_key_exists($sHeader, $this->aFields);
 	}
 
-	/**
-	 * @return array|false
-	 */
-	protected function Fetch(): bool|array
+	protected function Fetch(): false|array
 	{
 		$aRow = current($this->aData);
 		next($this->aData);
 		return $aRow;
+	}
+
+	public function ReadCollectorConfig(): void
+	{
+		$this->aCollectorConfig = [];
+	}
+
+	/**
+	 * @inheritDoc
+	 * @throws Exception
+	 */
+	protected function OpenCSVFile(): bool
+	{
+		$sFileFormat = '%s-%0*d.csv';
+		$iEstimatedFileCount = (int)(count($this->aData) / Utils::GetConfigurationValue('max_chunk_size', 1000)) + 1;
+		if ($this->MustProcessBeforeSynchro()) {
+			$sDataFile = Utils::GetDataFilePath(sprintf($sFileFormat, get_class($this) . '.raw', 1 + (int)log10($iEstimatedFileCount), 1 + $this->iFileIndex));
+		} else {
+			$sDataFile = Utils::GetDataFilePath(sprintf($sFileFormat, get_class($this), 1 + (int)log10($iEstimatedFileCount), 1 + $this->iFileIndex));
+		}
+		$this->aCSVFile[$this->iFileIndex] = @fopen($sDataFile, 'wb');
+
+		if ($this->aCSVFile[$this->iFileIndex] === false) {
+			throw new IOException("Unable to open the file '$sDataFile' for writing.");
+		} else {
+			Utils::Log(LOG_INFO, "Writing to file '$sDataFile'.");
+		}
+
+		return true;
 	}
 
 	/**
@@ -116,6 +145,7 @@ abstract class SnmpCollector extends Collector
 	{
 		if (!isset(static::$aSnmpCredentials[$iKey])) {
 			$oRestClient = new RestClient();
+			/** @noinspection SpellCheckingInspection */
 			$aResults = $oRestClient->Get('SnmpCredentials', $iKey, 'name,community,security_level,security_name,auth_protocol,auth_passphrase,priv_protocol,priv_passphrase,context_name');
 
 			if ($aResults['code'] != 0 || empty($aResults['objects'])) throw new Exception($aResults['message'], $aResults['code']);

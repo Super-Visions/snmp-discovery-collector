@@ -1,5 +1,5 @@
 {
-    "name": "$prefix$SNMP Model - $uuid$",
+    "name": "SNMP Model - $uuid$",
     "description": "SNMP Discovery v$version$",
     "status": "$synchro_status$",
     "user_id": "$synchro_user$",
@@ -47,6 +47,6 @@
         }
     ],
     "user_delete_policy": "administrators",
-    "url_icon": "",
-    "url_application": ""
+    "url_icon": "$url_icon$",
+    "url_application": "$url_application$"
 }
