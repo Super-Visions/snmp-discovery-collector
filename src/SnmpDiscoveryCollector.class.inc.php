@@ -6,19 +6,8 @@ use PhpAmqpLib\Message\AMQPMessage;
 
 class SnmpDiscoveryCollector extends SnmpCollector
 {
-	/** @var int The ID of the SNMP discovery application found with the given UUID */
-	protected int $iApplicationID;
 	/** @var bool Whether distributed collection is enabled */
 	protected bool $bDistributed;
-	/**
-	 * @var array<string, array{
-	 *     default_org_id: int,
-	 *     default_networkdevicetype_id: int,
-	 *     snmpcredentials_list: int[],
-	 *     dhcp_range_discovery_enabled: string,
-	 * }> List of subnets with their configured parameters
-	 */
-	protected array $aSubnets = [];
 	/** @var array<int, array{ip: string, subnet_ip: string}> List of all the IP addresses to discover with their subnet IP */
 	protected array $aIPAddresses = [];
 	/** @var array<int, array{org_id: int, managementip_id: int, snmpcredentials_id: int}> */
@@ -69,9 +58,6 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	public function Init(): void
 	{
 		parent::Init();
-
-		// Load SNMP discovery application settings
-		$this->LoadApplicationSettings();
 		
 		// Initiate distributed collection
 		$this->bDistributed = filter_var(Utils::GetConfigurationValue('amqp_enabled', false), FILTER_VALIDATE_BOOLEAN);
@@ -312,71 +298,6 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	}
 
 	/**
-	 * Load the SNMP discovery application ID and subnet(s) to discover.
-	 * @return void
-	 * @throws Exception
-	 */
-	protected function LoadApplicationSettings(): void
-	{
-		$sUUID = Utils::GetConfigurationValue('discovery_application_uuid');
-		$oRestClient = new RestClient();
-		
-		try {
-			$aResults = $oRestClient->Get('SNMPDiscovery', ['uuid' => $sUUID], 'ipv4subnets_list,ipv6subnets_list');
-			if ($aResults['code'] != 0 || empty($aResults['objects'])) {
-				throw new Exception($aResults['message'], $aResults['code']);
-			}
-			
-			$aDiscovery = current($aResults['objects']);
-			$this->iApplicationID = (int)$aDiscovery['key'];
-			
-			Utils::Log(LOG_INFO, sprintf('An SNMP discovery application with UUID %s has been found in iTop.', $sUUID));
-		} catch (Exception $e) {
-			throw new Exception(sprintf('An SNMP discovery application with UUID %s could not be found: %s', $sUUID, $e->getMessage()), 0, $e);
-		}
-		
-		// Prepare IPv4 subnet info
-		foreach ($aDiscovery['fields']['ipv4subnets_list'] as $aSubnet) {
-			$this->LoadSubnet($aSubnet);
-		}
-		
-		// Prepare IPv6 subnet info
-		foreach ($aDiscovery['fields']['ipv6subnets_list'] as $aSubnet) {
-			$this->LoadSubnet($aSubnet);
-		}
-		
-		Utils::Log(LOG_INFO, count($this->aSubnets) . ' subnets to discover.');
-	}
-	
-	/**
-	 * Prepare the subnet parameters list by the given subnet.
-	 * @param array{
-	 *     ip: string,
-	 *     org_id: string,
-	 *     default_networkdevicetype_id: string,
-	 *     snmpcredentials_list: int[],
-	 *     dhcp_range_discovery_enabled: string,
-	 * } $aSubnet
-	 * @return void
-	 * @throws Exception
-	 */
-	protected function LoadSubnet(array $aSubnet): void
-	{
-		if ($aSubnet['ipdiscovery_enabled'] == 'yes') {
-			$this->aSubnets[$aSubnet['ip']] = [
-				'default_org_id' => (int)$aSubnet['org_id'],
-				'default_networkdevicetype_id' => (int)$aSubnet['default_networkdevicetype_id'],
-				'snmpcredentials_list' => array_map(function ($aListItem) { return (int)$aListItem['snmpcredentials_id']; }, $aSubnet['snmpcredentials_list']),
-				'dhcp_range_discovery_enabled' => $aSubnet['dhcp_range_discovery_enabled'],
-			];
-			
-			if (empty($aSubnet['default_networkdevicetype_id'])) {
-				Utils::Log(LOG_WARNING, sprintf('No default networkdevicetype_id set for subnet %s, creation of new devices might fail.', $aSubnet['ip']));
-			}
-		}
-	}
-	
-	/**
 	 * Load all IP addresses to discover from the subnet linked to the current SNMP discovery application.
 	 * @return void
 	 * @throws Exception
@@ -388,14 +309,14 @@ class SnmpDiscoveryCollector extends SnmpCollector
 SELECT IPv4Address AS a
 	JOIN IPv4Subnet AS s ON a.subnet_id = s.id
 WHERE s.snmpdiscovery_id = %d AND a.status != 'reserved'
-SQL, $this->iApplicationID));
+SQL, $this->oPlan->GetApplicationID()));
 		
 		// Load IPv6 addresses to discover
 		$aIPv6Addresses = static::LoadIPAddresses('IPv6Address', sprintf(<<<SQL
 SELECT IPv6Address AS a
 	JOIN IPv6Subnet AS s ON a.subnet_id = s.id
 WHERE s.snmpdiscovery_id = %d AND a.status != 'reserved'
-SQL, $this->iApplicationID));
+SQL, $this->oPlan->GetApplicationID()));
 		
 		$this->aIPAddresses = $aIPv4Addresses + $aIPv6Addresses;
 		Utils::Log(LOG_INFO, count($this->aIPAddresses) . ' addresses to discover.');
@@ -490,17 +411,18 @@ SQL, $this->iApplicationID));
 	 */
 	public function PrepareDiscoverDeviceByIP(int $iKey): array
 	{
+		$aSubnets = $this->oPlan->GetSubnets();
 		['ip' => $sIP, 'subnet_ip' => $sSubnetIP] = $this->aIPAddresses[$iKey];
-		
+
 		// Prepare defaults
 		$aDefaults = [
-			'org_id' => $this->aSubnets[$sSubnetIP]['default_org_id'] ?? 0,
-			'networkdevicetype_id' => $this->aSubnets[$sSubnetIP]['default_networkdevicetype_id'] ?? 0,
+			'org_id' => $aSubnets[$sSubnetIP]['default_org_id'] ?? 0,
+			'networkdevicetype_id' => $aSubnets[$sSubnetIP]['default_networkdevicetype_id'] ?? 0,
 			'status' => Utils::GetConfigurationValue('default_status', 'implementation'),
 		];
-		
+
 		// Prepare known credentials
-		$aDeviceCredentials = $this->aSubnets[$sSubnetIP]['snmpcredentials_list'] ?? [];
+		$aDeviceCredentials = $aSubnets[$sSubnetIP]['snmpcredentials_list'] ?? [];
 		foreach ($this->aDevices as $aDevice)  {
 			if ($aDevice['managementip_id'] == $iKey) {
 				array_unshift($aDeviceCredentials, $aDevice['snmpcredentials_id']);
@@ -508,14 +430,14 @@ SQL, $this->iApplicationID));
 				break;
 			}
 		}
-		
+
 		return [
 			'ip' => $sIP,
 			'defaults' => $aDefaults,
 			'credentials' => array_unique($aDeviceCredentials),
 		];
 	}
-	
+
 	/**
 	 * Send all IPs to be discovered to the RPC queue.
 	 * @return void
