@@ -20,8 +20,6 @@ class SnmpCollectionPlan extends CollectionPlan
 	 */
 	public function Init(): void
 	{
-		parent::Init();
-
 		// Check if modules are installed
 		Utils::CheckModuleInstallation('sv-snmp-discovery/1.3.0', true);
 

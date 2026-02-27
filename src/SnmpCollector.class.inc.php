@@ -16,9 +16,9 @@ abstract class SnmpCollector extends Collector
 	 */
 	public function Init(): void
 	{
-		parent::Init();
-
 		$this->oPlan = SnmpCollectionPlan::GetPlan();
+
+		parent::Init();
 	}
 
 	/**
