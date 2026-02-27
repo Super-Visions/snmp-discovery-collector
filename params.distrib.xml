@@ -186,6 +186,9 @@
 	<amqp_user>guest</amqp_user>
 	<amqp_password>guest</amqp_password>
 
+	<!-- Enable VLAN synchronisation -->
+	<collect_vlans>yes</collect_vlans>
+
 	<!-- Enable interface synchronisation -->
 	<collect_interfaces>yes</collect_interfaces>
 
