@@ -39,15 +39,10 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 
 	/**
 	 * Allow some fields to be NULL
-	 * @param string $sAttCode
-	 * @return boolean True if the attribute can be skipped, false otherwise
-    */
-	public function AttributeIsNullified($sAttCode): bool
+	 */
+	public function ReadCollectorConfig(): void
 	{
-		return match ($sAttCode) {
-			default => parent::AttributeIsNullified($sAttCode),
-			'mtu', 'status' => true,
-		};
+		$this->aCollectorConfig['nullified_attributes'] = ['mtu', 'status'];
 	}
 
 	/**

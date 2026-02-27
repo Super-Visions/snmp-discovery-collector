@@ -81,6 +81,11 @@ abstract class SnmpCollector extends Collector
 		return $aRow;
 	}
 
+	public function ReadCollectorConfig(): void
+	{
+		$this->aCollectorConfig = [];
+	}
+
 	/**
 	 * @param integer $iKey
 	 * @return SnmpCredentials
