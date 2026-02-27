@@ -41,6 +41,9 @@ class SnmpCollectionPlan extends CollectionPlan
 		Orchestrator::AddCollector($iOrder++, IOSVersionCollector::class);
 		Orchestrator::AddCollector($iOrder++, SnmpDiscoveryCollector::class);
 
+		if (filter_var(Utils::GetConfigurationValue('collect_vlans', false), FILTER_VALIDATE_BOOLEAN))
+			Orchestrator::AddCollector($iOrder++, VlanCollector::class);
+
 		if ($this->bCollectInterfaces) {
 			Orchestrator::AddCollector($iOrder++, PhysicalInterfaceCollector::class);
 			Orchestrator::AddCollector($iOrder++, VirtualInterfaceCollector::class);

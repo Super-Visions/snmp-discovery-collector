@@ -11,6 +11,7 @@ require_once(__DIR__.'/src/SnmpCollectionPlan.class.inc.php');
 require_once(__DIR__.'/src/SnmpCollector.class.inc.php');
 require_once(__DIR__.'/src/SnmpDiscoveryCollector.class.inc.php');
 require_once(__DIR__.'/src/SnmpInterfaceCollector.class.inc.php');
+require_once(__DIR__.'/src/VlanCollector.class.inc.php');
 require_once(__DIR__.'/src/IOSVersionCollector.class.inc.php');
 require_once(__DIR__.'/src/ModelCollector.class.inc.php');
 

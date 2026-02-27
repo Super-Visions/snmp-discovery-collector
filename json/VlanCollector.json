@@ -1,0 +1,110 @@
+{
+  "name": "SNMP VLAN Discovery - $uuid$",
+  "description": "",
+  "status": "$synchro_status$",
+  "user_id": "$synchro_user$",
+  "notify_contact_id": "$contact_to_notify$",
+  "scope_class": "VLAN",
+  "database_table_name": "",
+  "scope_restriction": "",
+  "full_load_periodicity": "$full_load_interval$",
+  "reconciliation_policy": "use_attributes",
+  "action_on_zero": "create",
+  "action_on_one": "update",
+  "action_on_multiple": "error",
+  "delete_policy": "update",
+  "delete_policy_update": "status:unused",
+  "delete_policy_retention": "0",
+  "attribute_list": [
+    {
+      "attcode": "description",
+      "update": "0",
+      "reconcile": "0",
+      "update_policy": "master_locked",
+      "finalclass": "SynchroAttribute"
+    },
+    {
+      "attcode": "logicalinterfaces_list",
+      "update": "0",
+      "reconcile": "0",
+      "update_policy": "master_locked",
+      "row_separator": "|",
+      "attribute_separator": ";",
+      "value_separator": ":",
+      "attribute_qualifier": "'",
+      "finalclass": "SynchroAttLinkSet"
+    },
+    {
+      "attcode": "name",
+      "update": "1",
+      "reconcile": "0",
+      "update_policy": "master_unlocked",
+      "finalclass": "SynchroAttribute"
+    },
+    {
+      "attcode": "networkdevicevirtualinterfaces_list",
+      "update": "0",
+      "reconcile": "0",
+      "update_policy": "master_locked",
+      "row_separator": "|",
+      "attribute_separator": ";",
+      "value_separator": ":",
+      "attribute_qualifier": "'",
+      "finalclass": "SynchroAttLinkSet"
+    },
+    {
+      "attcode": "org_id",
+      "update": "1",
+      "reconcile": "1",
+      "update_policy": "master_locked",
+      "reconciliation_attcode": "",
+      "finalclass": "SynchroAttExtKey"
+    },
+    {
+      "attcode": "physicalinterfaces_list",
+      "update": "0",
+      "reconcile": "0",
+      "update_policy": "master_locked",
+      "row_separator": "|",
+      "attribute_separator": ";",
+      "value_separator": ":",
+      "attribute_qualifier": "'",
+      "finalclass": "SynchroAttLinkSet"
+    },
+    {
+      "attcode": "status",
+      "update": "1",
+      "reconcile": "0",
+      "update_policy": "master_locked",
+      "finalclass": "SynchroAttribute"
+    },
+    {
+      "attcode": "subnets_list",
+      "update": "0",
+      "reconcile": "0",
+      "update_policy": "master_locked",
+      "row_separator": "|",
+      "attribute_separator": ";",
+      "value_separator": ":",
+      "attribute_qualifier": "'",
+      "finalclass": "SynchroAttLinkSet"
+    },
+    {
+      "attcode": "type",
+      "update": "0",
+      "reconcile": "0",
+      "update_policy": "master_locked",
+      "finalclass": "SynchroAttribute"
+    },
+    {
+      "attcode": "vlan_tag",
+      "update": "1",
+      "reconcile": "1",
+      "update_policy": "master_locked",
+      "finalclass": "SynchroAttribute"
+    }
+  ],
+  "user_delete_policy": "administrators",
+  "url_icon": "$url_icon$",
+  "url_application": "$url_application$"
+}

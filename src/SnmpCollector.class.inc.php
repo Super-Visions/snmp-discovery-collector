@@ -111,6 +111,32 @@ abstract class SnmpCollector extends Collector
 	}
 
 	/**
+	 * Format the given linkset rows
+	 * @param array[] $aData array of links
+	 * @param string $sRowSeparator
+	 * @param string $sAttributeSeparator
+	 * @param string $sValueSeparator
+	 * @param string $sAttributeQualifier
+	 * @return string
+	 */
+	protected static function ImplodeLinkSet(array $aData, string $sRowSeparator = '|', string $sAttributeSeparator = ';', string $sValueSeparator = ':', string $sAttributeQualifier = "'"): string
+	{
+		$aRows = [];
+		foreach ($aData as $aRow) {
+			$aRowAttributes = [];
+			foreach ($aRow as $sKey => $value) {
+				$rStream = fopen('php://memory', 'r+');
+				fputcsv($rStream, [$value], enclosure: $sAttributeQualifier, eol: '');
+				rewind($rStream);
+				$aRowAttributes[] = $sKey . $sValueSeparator . stream_get_contents($rStream);
+				fclose($rStream);
+			}
+			$aRows[] = implode($sAttributeSeparator, $aRowAttributes);
+		}
+		return implode($sRowSeparator, $aRows);
+	}
+
+	/**
 	 * @param integer $iKey
 	 * @return SnmpCredentials
 	 * @throws Exception
