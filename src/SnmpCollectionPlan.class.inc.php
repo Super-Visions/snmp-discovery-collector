@@ -37,7 +37,7 @@ class SnmpCollectionPlan extends CollectionPlan
 	 */
 	public function AddCollectorsToOrchestrator(): bool
 	{
-		$iOrder = 0;
+		$iOrder = 1;
 
 		Orchestrator::AddCollector($iOrder++, ModelCollector::class);
 		Orchestrator::AddCollector($iOrder++, IOSVersionCollector::class);
