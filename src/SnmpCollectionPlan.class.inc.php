@@ -2,54 +2,40 @@
 
 class SnmpCollectionPlan extends CollectionPlan
 {
-	protected array $aLaunchSequence = [];
+	/** @var bool Whether interfaces also need to be collected */
+	protected bool $bCollectInterfaces;
 
+	/**
+	 * @inheritDoc
+	 */
 	public function Init(): void
 	{
 		parent::Init();
 
-		$bCollectInterfaces = filter_var(Utils::GetConfigurationValue('collect_interfaces', false), FILTER_VALIDATE_BOOLEAN);
+		// Check if modules are installed
+		Utils::CheckModuleInstallation('sv-snmp-discovery/1.3.0', true);
 
-		$this->aLaunchSequence = [
-			[
-				'name' => ModelCollector::class,
-				'enable' => 'yes',
-			],
-			[
-				'name' => IOSVersionCollector::class,
-				'enable' => 'yes',
-			],
-			[
-				'name' => SnmpDiscoveryCollector::class,
-				'enable' => 'yes',
-			],
-			[
-				'name' => PhysicalInterfaceCollector::class,
-				'enable' => $bCollectInterfaces ? 'yes' : 'no',
-			],
-			[
-				'name' => VirtualInterfaceCollector::class,
-				'enable' => $bCollectInterfaces ? 'yes' : 'no',
-			],
-			[
-				'name' => AggregateLinkCollector::class,
-				'enable' => $bCollectInterfaces ? 'yes' : 'no',
-			],
-		];
+		$this->bCollectInterfaces = filter_var(Utils::GetConfigurationValue('collect_interfaces', false), FILTER_VALIDATE_BOOLEAN);
 	}
 
-	public function GetSortedLaunchSequence(): array
+	/**
+	 * @inheritDoc
+	 * @return true
+	 */
+	public function AddCollectorsToOrchestrator(): bool
 	{
-		return $this->aLaunchSequence;
-	}
+		$iOrder = 0;
 
-	function GetCollectorDefinitionFile($sCollector): bool
-	{
-		return match ($sCollector) {
-			PhysicalInterfaceCollector::class,
-			VirtualInterfaceCollector::class,
-			AggregateLinkCollector::class => parent::GetCollectorDefinitionFile(SnmpInterfaceCollector::class),
-			default => parent::GetCollectorDefinitionFile($sCollector),
-		};
+		Orchestrator::AddCollector($iOrder++, ModelCollector::class);
+		Orchestrator::AddCollector($iOrder++, IOSVersionCollector::class);
+		Orchestrator::AddCollector($iOrder++, SnmpDiscoveryCollector::class);
+
+		if ($this->bCollectInterfaces) {
+			Orchestrator::AddCollector($iOrder++, PhysicalInterfaceCollector::class);
+			Orchestrator::AddCollector($iOrder++, VirtualInterfaceCollector::class);
+			Orchestrator::AddCollector($iOrder++, AggregateLinkCollector::class);
+		}
+
+		return true;
 	}
 }
