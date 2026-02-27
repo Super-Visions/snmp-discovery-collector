@@ -87,6 +87,30 @@ abstract class SnmpCollector extends Collector
 	}
 
 	/**
+	 * @inheritDoc
+	 * @throws Exception
+	 */
+	protected function OpenCSVFile(): bool
+	{
+		$sFileFormat = '%s-%0*d.csv';
+		$iEstimatedFileCount = (int)(count($this->aData) / Utils::GetConfigurationValue('max_chunk_size', 1000)) + 1;
+		if ($this->MustProcessBeforeSynchro()) {
+			$sDataFile = Utils::GetDataFilePath(sprintf($sFileFormat, get_class($this) . '.raw', 1 + (int)log10($iEstimatedFileCount), 1 + $this->iFileIndex));
+		} else {
+			$sDataFile = Utils::GetDataFilePath(sprintf($sFileFormat, get_class($this), 1 + (int)log10($iEstimatedFileCount), 1 + $this->iFileIndex));
+		}
+		$this->aCSVFile[$this->iFileIndex] = @fopen($sDataFile, 'wb');
+
+		if ($this->aCSVFile[$this->iFileIndex] === false) {
+			throw new IOException("Unable to open the file '$sDataFile' for writing.");
+		} else {
+			Utils::Log(LOG_INFO, "Writing to file '$sDataFile'.");
+		}
+
+		return true;
+	}
+
+	/**
 	 * @param integer $iKey
 	 * @return SnmpCredentials
 	 * @throws Exception
