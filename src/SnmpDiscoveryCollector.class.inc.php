@@ -271,6 +271,7 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	 * @link https://github.com/Combodo/iTop/pull/541
 	 * @param string $sHeader
 	 * @return bool
+	 * @noinspection SpellCheckingInspection
 	 */
 	protected function HeaderIsAllowed($sHeader): bool
 	{
@@ -477,7 +478,7 @@ SQL, $this->oPlan->GetApplicationID()));
 	 * Start the worker by listening to the correct queue.
 	 * @param int $iDuration Time in seconds until the worker stops
 	 * @return void
-	 * @throws ErrorException
+	 * @throws Exception
 	 */
 	public function StartWorker(int $iDuration): void
 	{
@@ -639,9 +640,14 @@ SQL, $this->oPlan->GetApplicationID()));
 						}
 					}
 				}
-				if (empty($aContacts) && !empty($sSysContact)) $aContacts[] = ['friendlyname' => $sSysContact];
+				if (empty($aContacts) && !empty($sSysContact))
+					/** @noinspection SpellCheckingInspection */
+					$aContacts[] = ['friendlyname' => $sSysContact];
 
-				// Return device
+				/**
+				 * Return device
+				 * @noinspection SpellCheckingInspection
+				 */
 				return [
 					'primary_key' => $sPrimaryKey,
 					'org_id' => $aDefaults['org_id'],
@@ -688,6 +694,7 @@ SQL, $this->oPlan->GetApplicationID()));
 				
 				$bFound = false;
 				$sSerial = null;
+				/** @noinspection SpellCheckingInspection */
 				$bLoadSerial = filter_var($aDetectionOption['use_as_serialnumber'] ?? false, FILTER_VALIDATE_BOOLEAN);
 				$bPrimaryKey = filter_var($aDetectionOption['use_as_primary_key'] ?? $bLoadSerial, FILTER_VALIDATE_BOOLEAN);
 				$sSerialOid = $aDetectionOption['serial_oid'];

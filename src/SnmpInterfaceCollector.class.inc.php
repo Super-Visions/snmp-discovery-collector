@@ -20,7 +20,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 		return parent::Prepare();
 	}
 
-	public function Collect($iMaxChunkSize = 0)
+	public function Collect($iMaxChunkSize = 0): bool
 	{
 		return parent::Collect($iMaxChunkSize * 10);
 	}
@@ -30,7 +30,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	 * @param string $sHeader
 	 * @return bool
 	 */
-	public function HeaderIsAllowed($sHeader)
+	public function HeaderIsAllowed($sHeader): bool
 	{
 		if (in_array($sHeader, static::DeviceLookupFields)) return true;
 
@@ -42,7 +42,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	 * @param string $sAttCode
 	 * @return boolean True if the attribute can be skipped, false otherwise
     */
-	public function AttributeIsNullified($sAttCode)
+	public function AttributeIsNullified($sAttCode): bool
 	{
 		return match ($sAttCode) {
 			default => parent::AttributeIsNullified($sAttCode),
@@ -87,7 +87,9 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 		$this->oDeviceLookup->Lookup($aLineData, static::DeviceLookupFields, static::DeviceDestField, $iLineIndex);
 
 		// Lookup field not needed anymore after it has been used for preprocessing
-		foreach ($this->aLookupFieldPos as $iPos) unset($aLineData[$iPos]);
+		foreach ($this->aLookupFieldPos as $iPos)
+			/** @noinspection PhpConditionAlreadyCheckedInspection */
+			unset($aLineData[$iPos]);
 	}
 
 	/**
@@ -99,6 +101,8 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	 *     aggregatelinks_list: array,
 	 * }
 	 * @throws Exception
+	 * @noinspection SpellCheckingInspection
+	 * @noinspection PhpMissingBreakStatementInspection
 	 */
 	public static function CollectInterfaces(SNMP $oSNMP): array
 	{

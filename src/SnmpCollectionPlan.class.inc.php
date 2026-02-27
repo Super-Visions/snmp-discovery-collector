@@ -100,6 +100,7 @@ class SnmpCollectionPlan extends CollectionPlan
 	 * } $aSubnet
 	 * @return void
 	 * @throws Exception
+	 * @noinspection SpellCheckingInspection
 	 */
 	protected function LoadSubnet(array $aSubnet): void
 	{

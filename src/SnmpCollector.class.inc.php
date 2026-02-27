@@ -67,7 +67,7 @@ abstract class SnmpCollector extends Collector
 	 * @param string $sHeader
 	 * @return bool
 	 */
-	protected function HeaderIsAllowed($sHeader)
+	protected function HeaderIsAllowed($sHeader): bool
 	{
 		return array_key_exists($sHeader, $this->aFields);
 	}
@@ -88,6 +88,7 @@ abstract class SnmpCollector extends Collector
 	{
 		if (!isset(static::$aSnmpCredentials[$iKey])) {
 			$oRestClient = new RestClient();
+			/** @noinspection SpellCheckingInspection */
 			$aResults = $oRestClient->Get('SnmpCredentials', $iKey, 'name,community,security_level,security_name,auth_protocol,auth_passphrase,priv_protocol,priv_passphrase,context_name');
 
 			if ($aResults['code'] != 0 || empty($aResults['objects'])) throw new Exception($aResults['message'], $aResults['code']);
