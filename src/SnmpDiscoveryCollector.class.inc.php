@@ -58,14 +58,19 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	public function Init(): void
 	{
 		parent::Init();
-		
+
 		// Initiate distributed collection
 		$this->bDistributed = filter_var(Utils::GetConfigurationValue('amqp_enabled', false), FILTER_VALIDATE_BOOLEAN);
 		if ($this->bDistributed) $this->InitMessageQueue();
 
-		$this->InitMappingTables();
+		// Initialise the mapping tables used to detect the Brand, Model and IOS Version.
+		static::$oSysOidBrandMapping = new MappingTable('sysObjectID_brand_mapping');
+		static::$oSysOidModelMapping = new MappingTable('sysObjectID_model_mapping');
+		static::$oSysDescrBrandMapping = new MappingTable('sysDescr_brand_mapping');
+		static::$oSysDescrModelMapping = new MappingTable('sysDescr_model_mapping');
+		static::$oSysDescrVersionMapping = new MappingTable('sysDescr_version_mapping');
 	}
-	
+
 	/**
 	 * @return true
 	 * @throws Exception
@@ -358,25 +363,10 @@ SQL, $this->oPlan->GetApplicationID()));
 	}
 
 	/**
-	 * Initialise the mapping tables used to detect the Brand, Model and IOS Version.
-	 * @return void
-	 * @throws Exception
-	 */
-	public function InitMappingTables(): void
-	{
-		static::$oSysOidBrandMapping = new MappingTable('sysObjectID_brand_mapping');
-		static::$oSysOidModelMapping = new MappingTable('sysObjectID_model_mapping');
-		static::$oSysDescrBrandMapping = new MappingTable('sysDescr_brand_mapping');
-		static::$oSysDescrModelMapping = new MappingTable('sysDescr_model_mapping');
-		static::$oSysDescrVersionMapping = new MappingTable('sysDescr_version_mapping');
-	}
-
-	/**
 	 * Initiate connection to AMQP server and declare the RPC queue.
-	 * @return void
 	 * @throws Exception
 	 */
-	public function InitMessageQueue(): void
+	protected function InitMessageQueue(): void
 	{
 		// Connect to AMQP server
 		$oConnection = new AMQPStreamConnection(
@@ -482,16 +472,18 @@ SQL, $this->oPlan->GetApplicationID()));
 	 */
 	public function StartWorker(int $iDuration): void
 	{
+		if (!$this->bDistributed) throw new Exception('Trying to start a worker while distributed collection is disabled');
+
 		$sConsumerTag = $this->oChannel->basic_consume($this->sQueue, callback: [$this, 'ProcessRequest']);
 		Utils::Log(LOG_DEBUG, sprintf('AMQP consumer tag: %s.', $sConsumerTag));
-		
+
 		$this->iTimeout = time() + $iDuration;
 		Utils::Log(LOG_NOTICE, sprintf('Running worker at least until %s.', date('Y-m-d H:i:s', $this->iTimeout)));
-		
+
 		// Start consuming
 		$this->oChannel->consume();
 	}
-	
+
 	/**
 	 * Process an incoming worker message.
 	 * @param AMQPMessage $oRequest
