@@ -71,10 +71,8 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	public function ProcessLineBeforeSynchro(&$aLineData, $iLineIndex): void
 	{
 		if ($iLineIndex == 0) {
-			foreach ($aLineData as $iPos => $sField) {
-				if (in_array($sField, static::DeviceLookupFields)) {
-					$this->aLookupFieldPos[$sField] = $iPos;
-				}
+			foreach (static::DeviceLookupFields as $sField) {
+				$this->aLookupFieldPos[$sField] = array_search($sField, $aLineData);
 			}
 		}
 
@@ -97,12 +95,11 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	 */
 	protected function ProcessVLANsLookup(array &$aLineData, int $iLineIndex): void
 	{
-		static $iVLANsListFieldPos = 0;
+		/** @var int $iVLANsListFieldPos */
+		static $iVLANsListFieldPos;
 		if ($iLineIndex === 0) {
-			foreach ($aLineData as $idx => $sHeader) if ($sHeader === 'vlans_list') {
-				$iVLANsListFieldPos = $idx;
-				return;
-			}
+			$iVLANsListFieldPos = array_search('vlans_list', $aLineData);
+			return;
 		}
 
 		$aLookupVLANLinks = json_decode($aLineData[$iVLANsListFieldPos], true);

@@ -803,12 +803,11 @@ SQL, $this->oPlan->GetApplicationID()));
      */
 	protected static function ProcessContactsLookup(array &$aLineData, int $iLineIndex, string $sDestField): void
 	{
-		static $iDestFieldPos = 0;
+		/** @var int $iDestFieldPos The position of the dest field in the array */
+		static $iDestFieldPos;
 
 		if ($iLineIndex === 0) {
-			foreach ($aLineData as $idx => $sHeader) if ($sHeader === $sDestField) {
-				$iDestFieldPos = $idx;
-			}
+			$iDestFieldPos = array_search($sDestField, $aLineData);
 			return;
 		}
 
