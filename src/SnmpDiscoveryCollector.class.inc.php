@@ -665,20 +665,23 @@ SQL, $this->oPlan->GetApplicationID()));
 
 				// Detect linked contacts from sysContact
 				$aContacts = [];
-                $aMatchRules = Utils::GetConfigurationValue('sysContact_mapping', []);
-				$cFilter = fn($sValue, $sKey) => is_string($sKey) && !is_null($sValue);
-				foreach ($aMatchRules as $sMatchRule) {
-					if (preg_match_all($sMatchRule, $sSysContact, $aMatches, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL)) {
-						foreach ($aMatches as $aMatch) {
-							Utils::Log(LOG_DEBUG, sprintf('Contact details detected from sysContact: %s', $aMatch[0]));
-							$aContact = array_filter($aMatch, $cFilter, ARRAY_FILTER_USE_BOTH);
-							if (!empty($aContact)) $aContacts[] = $aContact;
+				if (filter_var(Utils::GetConfigurationValue('enable_contact_linking', false), FILTER_VALIDATE_BOOLEAN)) {
+					$aMatchRules = Utils::GetConfigurationValue('sysContact_mapping', []);
+					$cFilter = fn($sValue, $sKey) => is_string($sKey) && !is_null($sValue);
+					foreach ($aMatchRules as $sMatchRule) {
+						if (preg_match_all($sMatchRule, $sSysContact, $aMatches, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL)) {
+							foreach ($aMatches as $aMatch) {
+								Utils::Log(LOG_DEBUG, sprintf('Contact details detected from sysContact: %s', $aMatch[0]));
+								$aContact = array_filter($aMatch, $cFilter, ARRAY_FILTER_USE_BOTH);
+								if (!empty($aContact)) $aContacts[] = $aContact;
+							}
 						}
 					}
+
+					if (empty($aContacts) && !empty($sSysContact))
+						/** @noinspection SpellCheckingInspection */
+						$aContacts[] = ['friendlyname' => $sSysContact];
 				}
-				if (empty($aContacts) && !empty($sSysContact))
-					/** @noinspection SpellCheckingInspection */
-					$aContacts[] = ['friendlyname' => $sSysContact];
 
 				/**
 				 * Return device
@@ -823,7 +826,7 @@ SQL, $this->oPlan->GetApplicationID()));
 						Utils::Log(LOG_ERR, $aResults['message']);
 						continue;
 					} elseif (!empty($aResults['objects'])) foreach ($aResults['objects'] as $aContact) {
-						$aFoundContacts[] = sprintf('contact_id:%d', $aContact['key']);
+						$aFoundContacts[] = ['contact_id' => $aContact['key']];
 					} else {
 						$iPriority = array_keys($aKeySpec) === ['friendlyname'] ? LOG_DEBUG : LOG_WARNING;
 						Utils::Log($iPriority, sprintf('Could not retrieve contact information for %s', json_encode($aKeySpec)));
@@ -837,6 +840,6 @@ SQL, $this->oPlan->GetApplicationID()));
 				$aContacts += static::$aLookupContacts[$sKeySpecHash];
 			}
 		}
-		$aLineData[$iDestFieldPos] = implode('|', array_unique($aContacts));
+		$aLineData[$iDestFieldPos] = static::ImplodeLinkSet($aContacts);
 	}
 }

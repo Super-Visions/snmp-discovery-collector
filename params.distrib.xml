@@ -172,6 +172,7 @@
 		<pattern><![CDATA[/^(?<org_name>[\w\s]+) - (?<friendlyname>[\w\s]+)$/]]></pattern>
 		<pattern><![CDATA[/<?(?<email>\b\S+@\S+\b)>?/]]></pattern>
 	</sysContact_mapping>
+	<enable_contact_linking type="bool">true</enable_contact_linking>
 
 	<!-- Default status for newly discovered network devices -->
 	<default_status>implementation</default_status>
