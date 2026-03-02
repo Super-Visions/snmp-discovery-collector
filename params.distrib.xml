@@ -172,7 +172,6 @@
 		<pattern><![CDATA[/^(?<org_name>[\w\s]+) - (?<friendlyname>[\w\s]+)$/]]></pattern>
 		<pattern><![CDATA[/<?(?<email>\b\S+@\S+\b)>?/]]></pattern>
 	</sysContact_mapping>
-	<enable_contact_linking type="bool">true</enable_contact_linking>
 
 	<!-- Default status for newly discovered network devices -->
 	<default_status>implementation</default_status>
@@ -186,6 +185,9 @@
 	<amqp_port>5672</amqp_port>
 	<amqp_user>guest</amqp_user>
 	<amqp_password>guest</amqp_password>
+
+	<!-- Enable linking contacts based on the sysContact value -->
+	<enable_contact_linking type="bool">yes</enable_contact_linking>
 
 	<!-- Enable VLAN synchronisation -->
 	<collect_vlans>yes</collect_vlans>
