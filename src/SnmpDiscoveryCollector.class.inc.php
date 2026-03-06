@@ -214,12 +214,14 @@ class SnmpDiscoveryCollector extends SnmpCollector
 		 */
 		$cPrepareInterface = function (array $aInterface) use ($aData) {
 			// Map VLANs
-			foreach ($aData['vlans_list'] as $iTag => $aVLAN)
-				if (in_array($aInterface['primary_key'], $aVLAN['interfaces_list'])) $aVLANs[] = [
-					'vlan_id' => ['vlan_tag' => $iTag, 'org_id' => $aData['org_id']],
-					'mode' => in_array($aInterface['primary_key'], $aVLAN['untagged_interfaces_list'] ?? []) ? 'untagged' : 'tagged',
-				];
-			$aInterface['vlans_list'] = json_encode($aVLANs ?? []);
+			if (filter_var(Utils::GetConfigurationValue('collect_vlans', false), FILTER_VALIDATE_BOOLEAN)) {
+				foreach ($aData['vlans_list'] as $iTag => $aVLAN)
+					if (in_array($aInterface['primary_key'], $aVLAN['interfaces_list'])) $aVLANs[] = [
+						'vlan_id' => ['vlan_tag' => $iTag, 'org_id' => $aData['org_id']],
+						'mode' => in_array($aInterface['primary_key'], $aVLAN['untagged_interfaces_list'] ?? []) ? 'untagged' : 'tagged',
+					];
+				$aInterface['vlans_list'] = json_encode($aVLANs ?? []);
+			}
 			// Prepare primary_key
 			$aInterface['primary_key'] = sprintf('%s - %d', $aData['primary_key'], $aInterface['primary_key']);
 			// Copy fields used for device lookup

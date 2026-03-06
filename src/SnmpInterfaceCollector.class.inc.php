@@ -84,7 +84,8 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 			unset($aLineData[$iPos]);
 
 		// Lookup VLANs
-		$this->ProcessVLANsLookup($aLineData, $iLineIndex);
+		if (filter_var(Utils::GetConfigurationValue('collect_vlans', false), FILTER_VALIDATE_BOOLEAN))
+			$this->ProcessVLANsLookup($aLineData, $iLineIndex);
 	}
 
 	/**
