@@ -112,7 +112,7 @@ abstract class SnmpCollector extends Collector
 
 	/**
 	 * Format the given linkset rows
-	 * @param array[] $aData array of links
+	 * @param array[] $aData array of links as associative arrays
 	 * @param string $sRowSeparator
 	 * @param string $sAttributeSeparator
 	 * @param string $sValueSeparator
