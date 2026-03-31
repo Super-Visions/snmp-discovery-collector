@@ -36,44 +36,6 @@ abstract class SnmpCollector extends Collector
 		return parent::GetSynchroDataSourceDefinition($aPlaceHolders);
 	}
 
-	/**
-	 * @todo Workaround needed until PR merged in data-collector-base
-	 * @link https://github.com/Combodo/itop-data-collector-base/pull/37
-	 * @param string[] $aHeaders
-	 * @return void
-	 * @throws Exception
-	 */
-	protected function AddHeader($aHeaders): void
-	{
-		$this->aCSVHeaders = array();
-		foreach ($aHeaders as $sHeader)
-		{
-			if (($sHeader != 'primary_key') && !$this->HeaderIsAllowed($sHeader))
-			{
-				if (!$this->AttributeIsOptional($sHeader))
-				{
-					Utils::Log(LOG_WARNING, "Invalid column '$sHeader', will be ignored.");
-				}
-			}
-			else
-			{
-				$this->aCSVHeaders[] = $sHeader;
-			}
-		}
-		fputcsv($this->aCSVFile[$this->iFileIndex], $this->aCSVHeaders, $this->sSeparator);
-	}
-
-	/**
-	 * @todo Workaround needed until PR merged in data-collector-base
-	 * @link https://github.com/Combodo/itop-data-collector-base/pull/37
-	 * @param string $sHeader
-	 * @return bool
-	 */
-	protected function HeaderIsAllowed($sHeader): bool
-	{
-		return array_key_exists($sHeader, $this->aFields);
-	}
-
 	protected function Fetch(): false|array
 	{
 		$aRow = current($this->aData);
