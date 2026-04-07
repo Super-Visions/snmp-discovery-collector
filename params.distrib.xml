@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="doc/schema.xsd"?>
 <!-- Default values for parameters. Do NOT alter this file, use params.local.xml instead -->
 <parameters>
 	<!-- SNMP Discovery Application UUID -->
@@ -180,7 +181,7 @@
 	<additional_device_where>status = 'production'</additional_device_where>
 
 	<!-- Enable distributed collection -->
-	<amqp_enabled>false</amqp_enabled>
+	<amqp_enabled type="bool">false</amqp_enabled>
 	<amqp_host>localhost</amqp_host>
 	<amqp_port>5672</amqp_port>
 	<amqp_user>guest</amqp_user>
@@ -190,10 +191,10 @@
 	<enable_contact_linking type="bool">yes</enable_contact_linking>
 
 	<!-- Enable VLAN synchronisation -->
-	<collect_vlans>yes</collect_vlans>
+	<collect_vlans type="bool">yes</collect_vlans>
 
 	<!-- Enable interface synchronisation -->
-	<collect_interfaces>yes</collect_interfaces>
+	<collect_interfaces type="bool">yes</collect_interfaces>
 
 	<json_placeholders>
 		<uuid>$discovery_application_uuid$</uuid>

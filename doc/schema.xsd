@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+	<xs:include schemaLocation="https://raw.githubusercontent.com/Super-Visions/itop-data-collector-base/refs/heads/feature/parameters/xsd-schema/doc/schema.xsd"/>
+
+	<xs:element name="discovery_application_uuid" type="xs:token">
+		<xs:annotation>
+			<xs:documentation>SNMP Discovery Application UUID</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="serial_detection">
+		<xs:annotation>
+			<xs:documentation>Specify a matching system OID for which serial number detection mechanism to use</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="item" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="system_oid_match" type="xs:token"/>
+							<xs:element name="serial_oid" type="xs:token"/>
+							<xs:element name="method">
+								<xs:annotation>
+									<xs:documentation>Method to use to retrieve the serial number: get, getNextNonEmpty, getNextValidMAC</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:enumeration value="get"/>
+										<xs:enumeration value="getNextNonEmpty"/>
+										<xs:enumeration value="getNextValidMAC"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="use_as_serialnumber" type="php-boolean"/>
+							<xs:element name="use_as_primary_key" type="php-boolean"/>
+						</xs:sequence>
+						<xs:attribute name="type" type="xs:string" fixed="hash"/>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+			<xs:attribute name="type" type="xs:string" fixed="array" use="required"/>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="sysObjectID_brand_mapping" type="mapping"/>
+	<xs:element name="sysObjectID_model_mapping" type="mapping"/>
+	<xs:element name="sysDescr_brand_mapping" type="mapping"/>
+	<xs:element name="sysDescr_model_mapping" type="mapping"/>
+	<xs:element name="sysDescr_version_mapping" type="mapping"/>
+	<xs:element name="sysContact_mapping" type="mapping"/>
+
+	<xs:element name="default_status" type="string">
+		<xs:annotation>
+			<xs:documentation>Default status for newly discovered network devices</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="additional_device_where" type="string">
+		<xs:annotation><xs:documentation>Additional network devices to discover</xs:documentation></xs:annotation>
+	</xs:element>
+
+	<xs:element name="amqp_enabled" type="boolean">
+		<xs:annotation>
+			<xs:documentation>Enable distributed collection</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="amqp_host" type="string"/>
+	<xs:element name="amqp_port" type="integer"/>
+	<xs:element name="amqp_user" type="string"/>
+	<xs:element name="amqp_password" type="string"/>
+
+	<xs:element name="enable_contact_linking" type="boolean">
+		<xs:annotation>
+			<xs:documentation>Enable linking contacts based on the sysContact value</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="collect_interfaces" type="boolean">
+		<xs:annotation>
+			<xs:documentation>Enable interface synchronisation</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="collect_vlans" type="boolean">
+		<xs:annotation>
+			<xs:documentation>Enable VLAN synchronisation</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+
+
+</xs:schema>
