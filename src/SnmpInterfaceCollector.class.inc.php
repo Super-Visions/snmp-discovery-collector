@@ -63,12 +63,28 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	}
 
 	/**
-	 * Keep track of the position of the lookup fields and remove them from the CSV line
+	 * Process device and VLANs before synchronisation
 	 * @param array $aLineData The current CSV line data
 	 * @param int $iLineIndex Index of the line in the current CSV file
 	 * @return void
 	 */
 	public function ProcessLineBeforeSynchro(&$aLineData, $iLineIndex): void
+	{
+		// Lookup device
+		$this->ProcessDeviceLookup($aLineData, $iLineIndex);
+
+		// Lookup VLANs
+		if (filter_var(Utils::GetConfigurationValue('collect_vlans', false), FILTER_VALIDATE_BOOLEAN))
+			$this->ProcessVLANsLookup($aLineData, $iLineIndex);
+	}
+
+	/**
+	 * Lookup the Device from the specified fields.
+	 * @param array $aLineData The current CSV line data
+	 * @param int $iLineIndex Index of the line in the current CSV file
+	 * @return void
+	 */
+	public function ProcessDeviceLookup(array &$aLineData, int $iLineIndex): void
 	{
 		if ($iLineIndex == 0) {
 			foreach (static::DeviceLookupFields as $sField) {
@@ -82,10 +98,6 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 		foreach ($this->aLookupFieldPos as $iPos)
 			/** @noinspection PhpConditionAlreadyCheckedInspection */
 			unset($aLineData[$iPos]);
-
-		// Lookup VLANs
-		if (filter_var(Utils::GetConfigurationValue('collect_vlans', false), FILTER_VALIDATE_BOOLEAN))
-			$this->ProcessVLANsLookup($aLineData, $iLineIndex);
 	}
 
 	/**
