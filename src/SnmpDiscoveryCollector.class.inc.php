@@ -222,6 +222,8 @@ class SnmpDiscoveryCollector extends SnmpCollector
 					];
 				$aInterface['vlans_list'] = json_encode($aVLANs ?? []);
 			}
+			// Prepare IPs
+			$aInterface['ip_list'] = json_encode(array_map(function ($aIPLink) use ($aData) { $aIPLink['ipaddress_id']['org_id'] = $aData['org_id']; return $aIPLink; }, $aInterface['ip_list']));
 			// Prepare primary_key
 			$aInterface['primary_key'] = sprintf('%s - %d', $aData['primary_key'], $aInterface['primary_key']);
 			// Copy fields used for device lookup
@@ -360,14 +362,26 @@ class SnmpDiscoveryCollector extends SnmpCollector
 		$aIPv4Addresses = static::LoadIPAddresses('IPv4Address', sprintf(<<<SQL
 SELECT IPv4Address AS a
 	JOIN IPv4Subnet AS s ON a.subnet_id = s.id
-WHERE s.snmpdiscovery_id = %d AND a.status != 'reserved'
+WHERE s.snmpdiscovery_id = %1\$d AND a.status != 'reserved' AND a.id NOT IN (
+	SELECT IPAddress AS ip JOIN lnkIPInterfaceToIPAddress AS lnk ON lnk.ipaddress_id = ip.id
+)
+UNION SELECT IPv4Address AS a
+	JOIN IPv4Subnet AS s ON a.subnet_id = s.id
+	JOIN NetworkDevice AS d ON d.managementip_id = a.id
+WHERE s.snmpdiscovery_id = %1\$d AND a.status != 'reserved'
 SQL, $this->oPlan->GetApplicationID()));
 		
 		// Load IPv6 addresses to discover
 		$aIPv6Addresses = static::LoadIPAddresses('IPv6Address', sprintf(<<<SQL
 SELECT IPv6Address AS a
 	JOIN IPv6Subnet AS s ON a.subnet_id = s.id
-WHERE s.snmpdiscovery_id = %d AND a.status != 'reserved'
+WHERE s.snmpdiscovery_id = %1\$d AND a.status != 'reserved' AND a.id NOT IN (
+	SELECT IPAddress AS ip JOIN lnkIPInterfaceToIPAddress AS lnk ON lnk.ipaddress_id = ip.id
+)
+UNION SELECT IPv6Address AS a
+	JOIN IPv6Subnet AS s ON a.subnet_id = s.id
+	JOIN NetworkDevice AS d ON d.managementip_id = a.id
+WHERE s.snmpdiscovery_id = %1\$d AND a.status != 'reserved'
 SQL, $this->oPlan->GetApplicationID()));
 		
 		$this->aIPAddresses = $aIPv4Addresses + $aIPv6Addresses;

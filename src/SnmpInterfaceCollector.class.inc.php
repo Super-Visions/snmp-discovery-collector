@@ -10,6 +10,8 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	protected array $aLookupFieldPos = [];
 	/** @var LookupTable Lookup table for VLAN */
 	protected LookupTable $oVLANLookup;
+	/** @var LookupTable Lookup table for IP addresses */
+	protected LookupTable $oIPLookup;
 
 	/**
 	 * Retrieve and prepare interfaces discovered by {@see SnmpDiscoveryCollector}
@@ -60,6 +62,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	{
 		$this->oDeviceLookup = new LookupTable('SELECT NetworkDevice', static::DeviceLookupFields);
 		$this->oVLANLookup = new LookupTable('SELECT VLAN', ['vlan_tag', 'org_id']);
+		$this->oIPLookup = new LookupTable('SELECT IPAddress', ['friendlyname', 'org_id']);
 	}
 
 	/**
@@ -76,6 +79,9 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 		// Lookup VLANs
 		if (filter_var(Utils::GetConfigurationValue('collect_vlans', false), FILTER_VALIDATE_BOOLEAN))
 			$this->ProcessVLANsLookup($aLineData, $iLineIndex);
+
+		// Lookup IP addresses
+		$this->ProcessIPsLookup($aLineData, $iLineIndex);
 	}
 
 	/**
@@ -134,6 +140,39 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	}
 
 	/**
+	 * Lookup the IP addresses from the `ip_list` field.
+	 * @param array $aLineData The current CSV line data
+	 * @param int $iLineIndex Index of the line in the current CSV file
+	 * @return void
+	 */
+	protected function ProcessIPsLookup(array &$aLineData, int $iLineIndex): void
+	{
+		/** @var int $iIPsListFieldPos */
+		static $iIPsListFieldPos;
+		if ($iLineIndex === 0) {
+			$iIPsListFieldPos = array_search('ip_list', $aLineData);
+			return;
+		}
+
+		$aLookupIPs = json_decode($aLineData[$iIPsListFieldPos], true);
+		$aFoundIPs = [];
+		foreach ($aLookupIPs as $iLineIndex => $aIPLink) {
+			$aIPLink['ipaddress_id']['id'] = null;
+			$aIPLineDataHeaders = array_keys($aIPLink['ipaddress_id']);
+			$aIPLineData = array_values($aIPLink['ipaddress_id']);
+
+			if ($iLineIndex === 0) $this->oIPLookup->Lookup($aIPLineDataHeaders, ['friendlyname', 'org_id'], 'id', 0);
+			if ($this->oIPLookup->Lookup($aIPLineData, ['friendlyname', 'org_id'], 'id', $iLineIndex+1)) {
+				$aIPLink['ipaddress_id'] = $aIPLineData[array_search('id', $aIPLineDataHeaders)];
+				$aFoundIPs[] = $aIPLink;
+			}
+		}
+
+		// Store results
+		$aLineData[$iIPsListFieldPos] = static::ImplodeLinkSet($aFoundIPs);
+	}
+
+	/**
 	 * Collect device interfaces via SNMP
 	 * @param SNMP $oSNMP
 	 * @return array{
@@ -170,6 +209,9 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 		$ifHighSpeed = @$oSNMP->walk('.1.3.6.1.2.1.31.1.1.1.15', true);
 		$ifAlias = @$oSNMP->walk('.1.3.6.1.2.1.31.1.1.1.18', true);
 
+		// Load interface addresses
+		$aAddresses = static::CollectAddresses($oSNMP);
+
 		if ($ifType !== false) foreach ($ifType as $iIfIndex => $iIfType) {
 			$aInterface = [
 				'primary_key' => $iIfIndex,
@@ -189,6 +231,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 				},
 				'status' => $ifAdminStatus[$iIfIndex] ?? $ifOperStatus[$iIfIndex] ?? null,
 				'mtu' => $ifMtu[$iIfIndex] ?? null,
+				'ip_list' => $aAddresses[$iIfIndex] ?? [],
 			];
 
 			// Prepare interface name
@@ -267,6 +310,34 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 
 		Utils::Log(LOG_DEBUG, sprintf('%d interfaces collected', array_reduce($aInterfaces, fn($c, $item) => $c + count($item))));
 		return $aInterfaces;
+	}
+
+	/**
+	 * Collect interface IP addresses
+	 * @param SNMP $oSNMP
+	 * @return array<int, array> Keyed by ifIndex
+	 */
+	public static function CollectAddresses(SNMP $oSNMP): array
+	{
+		$aAddresses = [];
+
+		$ipAddressIfIndex = @$oSNMP->walk('1.3.6.1.2.1.4.34.1.3', true);
+
+		if ($ipAddressIfIndex !== false)  foreach ($ipAddressIfIndex as $sIndex => $iIfIndex) {
+
+			$aIndex = array_map('intval', explode('.', $sIndex));
+			$iAddrLen  = match ($aIndex[0]) {
+				1, 3 => 4,
+				2, 4 => 16,
+				default => null,
+			};
+
+			if ($iAddrLen !== null && count($aIndex) >= 2 + $iAddrLen ) $aAddresses[$iIfIndex][] = [
+				'ipaddress_id' => ['friendlyname' => inet_ntop(pack('C*', ...array_slice($aIndex, 2, $iAddrLen)))],
+			];
+		}
+
+		return $aAddresses;
 	}
 }
 
