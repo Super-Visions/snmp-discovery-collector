@@ -54,7 +54,9 @@
 		</xs:annotation>
 	</xs:element>
 	<xs:element name="additional_device_where" type="string">
-		<xs:annotation><xs:documentation>Additional network devices to discover</xs:documentation></xs:annotation>
+		<xs:annotation>
+			<xs:documentation>Additional network devices to discover</xs:documentation>
+		</xs:annotation>
 	</xs:element>
 
 	<xs:element name="amqp_enabled" type="boolean">
@@ -82,6 +84,4 @@
 			<xs:documentation>Enable VLAN synchronisation</xs:documentation>
 		</xs:annotation>
 	</xs:element>
-
-
 </xs:schema>
