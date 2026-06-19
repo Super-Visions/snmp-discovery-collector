@@ -214,7 +214,7 @@ class SnmpDiscoveryCollector extends SnmpCollector
 		 */
 		$cPrepareInterface = function (array $aInterface) use ($aData) {
 			// Map VLANs
-			if (filter_var(Utils::GetConfigurationValue('collect_vlans', false), FILTER_VALIDATE_BOOLEAN)) {
+			if ($this->oPlan->GetCollectVLANs()) {
 				foreach ($aData['vlans_list'] as $iTag => $aVLAN)
 					if (in_array($aInterface['primary_key'], $aVLAN['interfaces_list'])) $aVLANs[] = [
 						'vlan_id' => ['vlan_tag' => $iTag, 'org_id' => $aData['org_id']],

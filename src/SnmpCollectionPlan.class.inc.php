@@ -141,4 +141,22 @@ class SnmpCollectionPlan extends CollectionPlan
 	{
 		return $this->aSubnets;
 	}
+
+	/**
+	 * Get whether interfaces also need to be collected
+	 * @return bool
+	 */
+	public function GetCollectInterfaces(): bool
+	{
+		return $this->bCollectInterfaces;
+	}
+
+	/**
+	 * Get whether VLANs also need to be collected
+	 * @return bool
+	 */
+	public function GetCollectVLANs(): bool
+	{
+		return $this->bCollectVLANs;
+	}
 }

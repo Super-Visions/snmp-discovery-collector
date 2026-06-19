@@ -74,8 +74,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 		$this->ProcessDeviceLookup($aLineData, $iLineIndex);
 
 		// Lookup VLANs
-		if (filter_var(Utils::GetConfigurationValue('collect_vlans', false), FILTER_VALIDATE_BOOLEAN))
-			$this->ProcessVLANsLookup($aLineData, $iLineIndex);
+		if ($this->oPlan->GetCollectVLANs()) $this->ProcessVLANsLookup($aLineData, $iLineIndex);
 	}
 
 	/**
@@ -153,7 +152,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 			AggregateLinkCollector::InterfaceList => [],
 		];
 
-		if (!filter_var(Utils::GetConfigurationValue('collect_interfaces', false), FILTER_VALIDATE_BOOLEAN)) return $aInterfaces;
+		if (!SnmpCollectionPlan::GetPlan()->GetCollectInterfaces()) return $aInterfaces;
 		Utils::Log(LOG_DEBUG, "Collecting interfaces...");
 
 		// Load from ifTable
