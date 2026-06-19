@@ -308,6 +308,7 @@ class SnmpDiscoveryCollector extends SnmpCollector
 
 		foreach ($aExtraCollectors as $sCollector)
 		{
+			/** @var ModelCollector|IOSVersionCollector $oCollector */
 			$oCollector = new $sCollector();
 			$oCollector->Init();
 
