@@ -209,9 +209,6 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 		$ifHighSpeed = @$oSNMP->walk('.1.3.6.1.2.1.31.1.1.1.15', true);
 		$ifAlias = @$oSNMP->walk('.1.3.6.1.2.1.31.1.1.1.18', true);
 
-		// Load interface addresses
-		$aAddresses = static::CollectAddresses($oSNMP);
-
 		if ($ifType !== false) foreach ($ifType as $iIfIndex => $iIfType) {
 			$aInterface = [
 				'primary_key' => $iIfIndex,
@@ -231,7 +228,6 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 				},
 				'status' => $ifAdminStatus[$iIfIndex] ?? $ifOperStatus[$iIfIndex] ?? null,
 				'mtu' => $ifMtu[$iIfIndex] ?? null,
-				'ip_list' => $aAddresses[$iIfIndex] ?? [],
 			];
 
 			// Prepare interface name
@@ -310,34 +306,6 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 
 		Utils::Log(LOG_DEBUG, sprintf('%d interfaces collected', array_reduce($aInterfaces, fn($c, $item) => $c + count($item))));
 		return $aInterfaces;
-	}
-
-	/**
-	 * Collect interface IP addresses
-	 * @param SNMP $oSNMP
-	 * @return array<int, array> Keyed by ifIndex
-	 */
-	public static function CollectAddresses(SNMP $oSNMP): array
-	{
-		$aAddresses = [];
-
-		$ipAddressIfIndex = @$oSNMP->walk('1.3.6.1.2.1.4.34.1.3', true);
-
-		if ($ipAddressIfIndex !== false)  foreach ($ipAddressIfIndex as $sIndex => $iIfIndex) {
-
-			$aIndex = array_map('intval', explode('.', $sIndex));
-			$iAddrLen  = match ($aIndex[0]) {
-				1, 3 => 4,
-				2, 4 => 16,
-				default => null,
-			};
-
-			if ($iAddrLen !== null && count($aIndex) >= 2 + $iAddrLen ) $aAddresses[$iIfIndex][] = [
-				'ipaddress_id' => ['friendlyname' => inet_ntop(pack('C*', ...array_slice($aIndex, 2, $iAddrLen)))],
-			];
-		}
-
-		return $aAddresses;
 	}
 }
 
