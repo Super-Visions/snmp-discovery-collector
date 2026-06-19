@@ -140,7 +140,7 @@ class SnmpDiscoveryCollector extends SnmpCollector
 		{
 			// Wait until new message arrives
 			try {
-				$this->oChannel->wait(timeout: 60);
+				$this->oChannel->wait(timeout: 120);
 			} catch (AMQPTimeoutException $e) {
 				$this->iFetchTimeoutCount++;
 				Utils::Log(LOG_ERR, $e->getMessage());
