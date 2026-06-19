@@ -37,7 +37,7 @@ class VlanCollector extends SnmpCollector
 	{
 		$aVLANs = [];
 
-		if (!filter_var(Utils::GetConfigurationValue('collect_vlans', false), FILTER_VALIDATE_BOOLEAN)) return $aVLANs;
+		if (!SnmpCollectionPlan::GetPlan()->GetCollectVLANs()) return $aVLANs;
 		Utils::Log(LOG_DEBUG, "Collecting VLANs...");
 
 		// F5-BIGIP-SYSTEM-MIB::sysDeviceModelOIDs

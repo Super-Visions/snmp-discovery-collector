@@ -142,7 +142,7 @@ class SnmpDiscoveryCollector extends SnmpCollector
 		{
 			// Wait until new message arrives
 			try {
-				$this->oChannel->wait(timeout: 60);
+				$this->oChannel->wait(timeout: 120);
 			} catch (AMQPTimeoutException $e) {
 				$this->iFetchTimeoutCount++;
 				Utils::Log(LOG_ERR, $e->getMessage());
@@ -217,7 +217,7 @@ class SnmpDiscoveryCollector extends SnmpCollector
 		 */
 		$cPrepareInterface = function (array $aInterface) use ($aData) {
 			// Map VLANs
-			if (filter_var(Utils::GetConfigurationValue('collect_vlans', false), FILTER_VALIDATE_BOOLEAN)) {
+			if ($this->oPlan->GetCollectVLANs()) {
 				foreach ($aData['vlans_list'] as $iTag => $aVLAN)
 					if (in_array($aInterface['primary_key'], $aVLAN['interfaces_list'])) $aVLANs[] = [
 						'vlan_id' => ['vlan_tag' => $iTag, 'org_id' => $aData['org_id']],
@@ -336,6 +336,7 @@ class SnmpDiscoveryCollector extends SnmpCollector
 
 		foreach ($aExtraCollectors as $sCollector)
 		{
+			/** @var ModelCollector|IOSVersionCollector $oCollector */
 			$oCollector = new $sCollector();
 			$oCollector->Init();
 
