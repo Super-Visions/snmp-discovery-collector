@@ -4,6 +4,8 @@ class SnmpCollectionPlan extends CollectionPlan
 {
 	/** @var bool Whether interfaces also need to be collected */
 	protected bool $bCollectInterfaces;
+	/** @var bool Wether VLANs also need to be collected */
+	protected bool $bCollectVLANs;
 	/** @var int The `SNMPDiscovery` ID */
 	protected int $iApplicationID = 0;
 	/**
@@ -27,6 +29,7 @@ class SnmpCollectionPlan extends CollectionPlan
 		$this->LoadApplicationSettings();
 
 		$this->bCollectInterfaces = filter_var(Utils::GetConfigurationValue('collect_interfaces', false), FILTER_VALIDATE_BOOLEAN);
+		$this->bCollectVLANs = filter_var(Utils::GetConfigurationValue('collect_vlans', false), FILTER_VALIDATE_BOOLEAN);
 	}
 
 	/**
@@ -41,8 +44,7 @@ class SnmpCollectionPlan extends CollectionPlan
 		Orchestrator::AddCollector($iOrder++, IOSVersionCollector::class);
 		Orchestrator::AddCollector($iOrder++, SnmpDiscoveryCollector::class);
 
-		if (filter_var(Utils::GetConfigurationValue('collect_vlans', false), FILTER_VALIDATE_BOOLEAN))
-			Orchestrator::AddCollector($iOrder++, VlanCollector::class);
+		if ($this->bCollectVLANs) Orchestrator::AddCollector($iOrder++, VlanCollector::class);
 
 		if ($this->bCollectInterfaces) {
 			Orchestrator::AddCollector($iOrder++, PhysicalInterfaceCollector::class);
