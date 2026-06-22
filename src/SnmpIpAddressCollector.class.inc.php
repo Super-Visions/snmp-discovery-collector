@@ -26,7 +26,7 @@ abstract class SnmpIPAddressCollector extends SnmpCollector
 	/**
 	 * Collect interface IP addresses
 	 * @param SNMP $oSNMP
-	 * @return array<int, array> Keyed by ifIndex
+	 * @return array<array{ ip: string, ifIndex: int }>
 	 * @throws Exception
 	 */
 	public static function CollectAddresses(SNMP $oSNMP): array

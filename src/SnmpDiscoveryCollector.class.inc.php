@@ -46,7 +46,7 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	 * }> List of discovered VLANs
 	 */
 	public static array $aDiscoveredVLANs = [];
-	/** @var array<string, array{ ip: string, org_id: int}> List of discovered IPs */
+	/** @var array<string, array{ ip: string, org_id: int }> List of discovered IPs */
 	public static array $aDiscoveredIPAddresses = [];
 	protected static MappingTable $oSysOidBrandMapping;
 	protected static MappingTable $oSysOidModelMapping;
