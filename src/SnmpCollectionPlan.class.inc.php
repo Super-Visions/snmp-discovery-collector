@@ -4,6 +4,8 @@ class SnmpCollectionPlan extends CollectionPlan
 {
 	/** @var bool Whether interfaces also need to be collected */
 	protected bool $bCollectInterfaces;
+	/** @var bool Whether to collect IP addresses from the interfaces */
+	protected bool $bCollectIPs;
 	/** @var bool Wether VLANs also need to be collected */
 	protected bool $bCollectVLANs;
 	/** @var int The `SNMPDiscovery` ID */
@@ -29,6 +31,7 @@ class SnmpCollectionPlan extends CollectionPlan
 		$this->LoadApplicationSettings();
 
 		$this->bCollectInterfaces = filter_var(Utils::GetConfigurationValue('collect_interfaces', false), FILTER_VALIDATE_BOOLEAN);
+		$this->bCollectIPs = filter_var(Utils::GetConfigurationValue('collect_ip_addresses', true), FILTER_VALIDATE_BOOLEAN);
 		$this->bCollectVLANs = filter_var(Utils::GetConfigurationValue('collect_vlans', false), FILTER_VALIDATE_BOOLEAN);
 	}
 
@@ -46,10 +49,11 @@ class SnmpCollectionPlan extends CollectionPlan
 
 		if ($this->bCollectVLANs) Orchestrator::AddCollector($iOrder++, VlanCollector::class);
 
-		Orchestrator::AddCollector($iOrder++, IPv4AddressCollector::class);
-		Orchestrator::AddCollector($iOrder++, IPv6AddressCollector::class);
-
 		if ($this->bCollectInterfaces) {
+			if ($this->bCollectIPs){
+				Orchestrator::AddCollector($iOrder++, IPv4AddressCollector::class);
+				Orchestrator::AddCollector($iOrder++, IPv6AddressCollector::class);
+			}
 			Orchestrator::AddCollector($iOrder++, PhysicalInterfaceCollector::class);
 			Orchestrator::AddCollector($iOrder++, VirtualInterfaceCollector::class);
 			Orchestrator::AddCollector($iOrder++, AggregateLinkCollector::class);
@@ -152,6 +156,15 @@ class SnmpCollectionPlan extends CollectionPlan
 	public function GetCollectInterfaces(): bool
 	{
 		return $this->bCollectInterfaces;
+	}
+
+	/**
+	 * Get whether IP addresses also need to be collected
+	 * @return bool
+	 */
+	public function GetCollectIPs(): bool
+	{
+		return $this->bCollectIPs && $this->bCollectInterfaces;
 	}
 
 	/**

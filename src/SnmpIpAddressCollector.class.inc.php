@@ -33,6 +33,7 @@ abstract class SnmpIPAddressCollector extends SnmpCollector
 	{
 		$aAddresses = [];
 
+		if (!SnmpCollectionPlan::GetPlan()->GetCollectIPs()) return $aAddresses;
 		Utils::Log(LOG_DEBUG, "Collecting interface IPs...");
 
 		$ipAddressIfIndex = @$oSNMP->walk('1.3.6.1.2.1.4.34.1.3', true);

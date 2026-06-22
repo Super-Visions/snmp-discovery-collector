@@ -226,15 +226,17 @@ class SnmpDiscoveryCollector extends SnmpCollector
 				$aInterface['vlans_list'] = json_encode($aVLANs ?? []);
 			}
 			// Map IPs
-			foreach ($aData['ip_list'] as $aIPAddress) {
-				if ($aIPAddress['ifIndex'] == $aInterface['primary_key']) {
-					$aIPLinks[] = [
-						'ipaddress_id' => ['friendlyname' => $aIPAddress['ip'], 'org_id' => $aData['org_id']],
-						'ipaddress_ip' => $aIPAddress['ip'],
-					];
+			if ($this->oPlan->GetCollectIPs()) {
+				foreach ($aData['ip_list'] as $aIPAddress) {
+					if ($aIPAddress['ifIndex'] == $aInterface['primary_key']) {
+						$aIPLinks[] = [
+							'ipaddress_id' => ['friendlyname' => $aIPAddress['ip'], 'org_id' => $aData['org_id']],
+							'ipaddress_ip' => $aIPAddress['ip'],
+						];
+					}
 				}
+				$aInterface['ip_list'] = json_encode($aIPLinks ?? []);
 			}
-			$aInterface['ip_list'] = json_encode($aIPLinks ?? []);
 			// Prepare primary_key
 			$aInterface['primary_key'] = sprintf('%s - %d', $aData['primary_key'], $aInterface['primary_key']);
 			// Copy fields used for device lookup
