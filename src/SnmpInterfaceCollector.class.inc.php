@@ -10,6 +10,8 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	protected array $aLookupFieldPos = [];
 	/** @var LookupTable Lookup table for VLAN */
 	protected LookupTable $oVLANLookup;
+	/** @var LookupTable Lookup table for IP addresses */
+	protected LookupTable $oIPLookup;
 
 	/**
 	 * Retrieve and prepare interfaces discovered by {@see SnmpDiscoveryCollector}
@@ -60,6 +62,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	{
 		$this->oDeviceLookup = new LookupTable('SELECT NetworkDevice', static::DeviceLookupFields);
 		$this->oVLANLookup = new LookupTable('SELECT VLAN', ['vlan_tag', 'org_id']);
+		$this->oIPLookup = new LookupTable('SELECT IPAddress', ['friendlyname', 'org_id']);
 	}
 
 	/**
@@ -75,6 +78,9 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 
 		// Lookup VLANs
 		if ($this->oPlan->GetCollectVLANs()) $this->ProcessVLANsLookup($aLineData, $iLineIndex);
+
+		// Lookup IP addresses
+		$this->ProcessIPsLookup($aLineData, $iLineIndex);
 	}
 
 	/**
@@ -130,6 +136,39 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 
 		// Store results
 		$aLineData[$iVLANsListFieldPos] = static::ImplodeLinkSet($aFoundVLANLinks);
+	}
+
+	/**
+	 * Lookup the IP addresses from the `ip_list` field.
+	 * @param array $aLineData The current CSV line data
+	 * @param int $iLineIndex Index of the line in the current CSV file
+	 * @return void
+	 */
+	protected function ProcessIPsLookup(array &$aLineData, int $iLineIndex): void
+	{
+		/** @var int $iIPsListFieldPos */
+		static $iIPsListFieldPos;
+		if ($iLineIndex === 0) {
+			$iIPsListFieldPos = array_search('ip_list', $aLineData);
+			return;
+		}
+
+		$aLookupIPs = json_decode($aLineData[$iIPsListFieldPos], true);
+		$aFoundIPs = [];
+		foreach ($aLookupIPs as $iLineIndex => $aIPLink) {
+			$aIPLink['ipaddress_id']['id'] = null;
+			$aIPLineDataHeaders = array_keys($aIPLink['ipaddress_id']);
+			$aIPLineData = array_values($aIPLink['ipaddress_id']);
+
+			if ($iLineIndex === 0) $this->oIPLookup->Lookup($aIPLineDataHeaders, ['friendlyname', 'org_id'], 'id', 0);
+			if ($this->oIPLookup->Lookup($aIPLineData, ['friendlyname', 'org_id'], 'id', $iLineIndex+1)) {
+				$aIPLink['ipaddress_id'] = $aIPLineData[array_search('id', $aIPLineDataHeaders)];
+				$aFoundIPs[] = $aIPLink;
+			}
+		}
+
+		// Store results
+		$aLineData[$iIPsListFieldPos] = static::ImplodeLinkSet($aFoundIPs);
 	}
 
 	/**

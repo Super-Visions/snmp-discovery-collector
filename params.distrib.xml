@@ -196,6 +196,10 @@
 	<!-- Enable interface synchronisation -->
 	<collect_interfaces type="bool">yes</collect_interfaces>
 
+	<!-- Enable IP address synchronisation.
+	This only takes effect when interface synchronisation is also enabled. -->
+	<collect_ip_addresses type="bool">yes</collect_ip_addresses>
+
 	<json_placeholders>
 		<uuid>$discovery_application_uuid$</uuid>
 		<synchro_status>production</synchro_status>

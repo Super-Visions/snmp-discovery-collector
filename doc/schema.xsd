@@ -79,6 +79,11 @@
 			<xs:documentation>Enable interface synchronisation</xs:documentation>
 		</xs:annotation>
 	</xs:element>
+	<xs:element name="collect_ip_addresses" type="boolean">
+		<xs:annotation>
+			<xs:documentation>Enable IP address synchronisation</xs:documentation>
+		</xs:annotation>
+	</xs:element>
 	<xs:element name="collect_vlans" type="boolean">
 		<xs:annotation>
 			<xs:documentation>Enable VLAN synchronisation</xs:documentation>
