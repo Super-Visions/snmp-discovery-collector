@@ -111,7 +111,7 @@ class SnmpCollectionPlan extends CollectionPlan
 			$this->aSubnets[$aSubnet['ip']] = [
 				'default_org_id' => (int)$aSubnet['org_id'],
 				'default_networkdevicetype_id' => (int)$aSubnet['default_networkdevicetype_id'],
-				'snmpcredentials_list' => array_map(function ($aListItem) { return (int)$aListItem['snmpcredentials_id']; }, $aSubnet['snmpcredentials_list']),
+				'snmpcredentials_list' => array_map('intval', array_column($aSubnet['snmpcredentials_list'], 'snmpcredentials_id')),
 			];
 
 			if (empty($aSubnet['default_networkdevicetype_id'])) {
