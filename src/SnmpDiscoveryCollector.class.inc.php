@@ -437,7 +437,7 @@ SQL, $this->oPlan->GetApplicationID()));
 			if (empty($aAdditionalDevices)) return;
 			
 			// Also load IP addresses for additional devices
-			$sAdditionalIPs = implode(',', array_map(function ($aDevice) { return $aDevice['managementip_id']; }, $aAdditionalDevices));
+			$sAdditionalIPs = implode(',', array_column($aAdditionalDevices, 'managementip_id'));
 			$aIPv4Addresses = static::LoadIPAddresses('IPv4Address', sprintf( /** @lang SQL */ 'SELECT IPv4Address WHERE id IN(%s)', $sAdditionalIPs));
 			$aIPv6Addresses = static::LoadIPAddresses('IPv6Address', sprintf( /** @lang SQL */ 'SELECT IPv6Address WHERE id IN(%s)', $sAdditionalIPs));
 			
