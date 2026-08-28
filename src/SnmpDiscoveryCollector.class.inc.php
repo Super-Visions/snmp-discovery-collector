@@ -319,26 +319,6 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	}
 
 	/**
-	 * @todo Workaround needed until PR merged in iTop
-	 * @link https://github.com/Combodo/iTop/pull/541
-	 * @param string $sHeader
-	 * @return bool
-	 * @noinspection SpellCheckingInspection
-	 */
-	protected function HeaderIsAllowed($sHeader): bool
-	{
-		return match ($sHeader) {
-			'snmp_sysname',
-			'snmp_sysdescr',
-			'snmp_syslocation',
-			'snmp_syscontact',
-			'snmp_sysuptime',
-			=> true,
-			default => parent::HeaderIsAllowed($sHeader),
-		};
-	}
-
-	/**
 	 * @inheritDoc
 	 */
 	public function AttributeIsOptional($sAttCode): bool
