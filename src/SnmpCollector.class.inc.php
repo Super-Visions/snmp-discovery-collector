@@ -8,6 +8,8 @@ abstract class SnmpCollector extends Collector
 	protected static array $aSnmpCredentials = [];
 	/** @var array[] List of prepared data to be synchronised */
 	protected array $aData = [];
+	/** @var array<string, int> Header positions of the link set fields, indexed by field name */
+	protected static array $aLinkSetFieldPositions = [];
 
 	/**
 	 * @inheritDoc
@@ -70,6 +72,44 @@ abstract class SnmpCollector extends Collector
 		}
 
 		return true;
+	}
+
+	/**
+	 * Lookup the linked objects of a JSON encoded link set field and replace the field value
+	 * with the link set containing only the links whose target object was found.
+	 *
+	 * @param array $aLineData The current CSV line data
+	 * @param int $iLineIndex Index of the line in the current CSV file
+	 * @param string $sFieldName Name of the CSV field holding the JSON encoded links
+	 * @param LookupTable $oLookup Lookup table used to resolve the linked objects
+	 * @param string[] $aSearchKeys Fields used to search the linked object
+	 * @param string $sLinkKey Key of the linked object inside each link (e.g. `vlan_id`)
+	 * @return void
+	 */
+	protected function ProcessLinkSetLookup(array &$aLineData, int $iLineIndex, string $sFieldName, LookupTable $oLookup, array $aSearchKeys, string $sLinkKey): void
+	{
+		$this->aCSVHeaders;
+		if ($iLineIndex === 0) {
+			static::$aLinkSetFieldPositions[$sFieldName] = array_search($sFieldName, $aLineData);
+			return;
+		}
+
+		$iFieldPos = static::$aLinkSetFieldPositions[$sFieldName];
+		$aLookupLinks = json_decode($aLineData[$iFieldPos], true);
+		$aFoundLinks = [];
+		foreach ($aLookupLinks as $iLinkIndex => $aLookupLink) {
+			$aLookupLink[$sLinkKey]['id'] = null;
+			$aLookupLineHeaders = array_keys($aLookupLink[$sLinkKey]);
+			$aLookupLineValues = array_values($aLookupLink[$sLinkKey]);
+
+			if ($iLinkIndex === 0)  $oLookup->Lookup($aLookupLineHeaders, $aSearchKeys, 'id', 0);
+			if ($oLookup->Lookup($aLookupLineValues, $aSearchKeys, 'id', $iLinkIndex + 1)) {
+				$aLookupLink[$sLinkKey] = $aLookupLineValues[array_search('id', $aLookupLineHeaders)];
+				$aFoundLinks[] = $aLookupLink;
+			}
+		}
+
+		$aLineData[$iFieldPos] = static::ImplodeLinkSet($aFoundLinks);
 	}
 
 	/**
