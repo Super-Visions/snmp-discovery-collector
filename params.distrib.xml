@@ -110,6 +110,7 @@
 	</serial_detection>
 
 	<sysObjectID_brand_mapping type="array">
+		<pattern>/CISCO-PRODUCTS-MIB::/Cisco</pattern>
 		<pattern>/HUAWEI-MIB::/Huawei</pattern>
 		<pattern>/XF-\S+-MIB::/Ericsson</pattern>
 		<pattern>/TIMETRA-GLOBAL-MIB::/Nokia</pattern>
@@ -123,6 +124,7 @@
 	</sysObjectID_brand_mapping>
 
 	<sysObjectID_model_mapping type="array">
+		<pattern>/CISCO-PRODUCTS-MIB::cisco(UCSX?E?)(\w+)(M\d+)(?:Rackserver)?$/%2$s %3$s %4$s</pattern>
 		<pattern>/HUAWEI-MIB::atn([^.]+)/ATN %2$s</pattern>
 		<pattern>/FORTINET-FORTIGATE-MIB::fgt(\w+)/FortiGate %2$s</pattern>
 		<pattern>/JUNIPER-CHASSIS-DEFINES-MIB::jnxProductNameJNP(10003|204)/MX %2$s</pattern>
@@ -144,6 +146,9 @@
 		<pattern>/^BIG-IP/F5</pattern>
 		<pattern>/^OSA/ADVA</pattern>
 		<pattern>/^Peakflow/Netscout</pattern>
+		<pattern>/^Ivanti Inc/Ivanti</pattern>
+		<pattern>/Juniper Networks, Inc/Juniper</pattern>
+		<pattern>/Cisco Systems, Inc/Cisco</pattern>
 		<pattern>/Copyright \(C\) \d{4}-\d{4} (.+)\.$/%2$s</pattern>
 	</sysDescr_brand_mapping>
 
@@ -157,6 +162,7 @@
 		<pattern>/^BIG-IP VPR-C(\w+) :/BIG-IP VIPRION %2$s Chassis</pattern>
 		<pattern>/^(BIG-IP [^:]+) :/%2$s</pattern>
 		<pattern>/^OSA .+/%1$s</pattern>
+		<pattern>/^Ivanti .*,(ISA\d+(?:-V)?)/%2$s</pattern>
 	</sysDescr_model_mapping>
 
 	<sysDescr_version_mapping type="array">
@@ -165,6 +171,7 @@
 		<pattern>/^Arista Networks EOS version (\S+) running/EOS %2$s</pattern>
 		<pattern>/(BIG-IP software release \S+), build/%2$s</pattern>
 		<pattern>/^(Peakflow SP \S+) \(build .*\)/%2$s</pattern>
+		<pattern>/^Ivanti Inc\.,Ivanti (.+),.+,(\d+\.\d+R\d+\.\d+)/%2$s %3$s</pattern>
 	</sysDescr_version_mapping>
 
 	<sysContact_mapping type="array">
