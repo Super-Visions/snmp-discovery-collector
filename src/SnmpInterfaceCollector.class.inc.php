@@ -77,7 +77,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 		$this->ProcessDeviceLookup($aLineData, $iLineIndex);
 
 		// Lookup VLANs
-		if ($this->oPlan->GetCollectVLANs()) $this->ProcessVLANsLookup($aLineData, $iLineIndex);
+		if ($this->oPlan->GetCollectVLANs()) $this->ProcessLinkSetLookup($aLineData, $iLineIndex, 'vlans_list', $this->oVLANLookup, ['vlan_tag', 'org_id'], 'vlan_id');
 
 		// Lookup IP addresses
 		$this->ProcessIPsLookup($aLineData, $iLineIndex);
@@ -103,39 +103,6 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 		foreach ($this->aLookupFieldPos as $iPos)
 			/** @noinspection PhpConditionAlreadyCheckedInspection */
 			unset($aLineData[$iPos]);
-	}
-
-	/**
-	 * Lookup the VLANs from the `vlans_list` field.
-	 * @param array $aLineData The current CSV line data
-	 * @param int $iLineIndex Index of the line in the current CSV file
-	 * @return void
-	 */
-	protected function ProcessVLANsLookup(array &$aLineData, int $iLineIndex): void
-	{
-		/** @var int $iVLANsListFieldPos */
-		static $iVLANsListFieldPos;
-		if ($iLineIndex === 0) {
-			$iVLANsListFieldPos = array_search('vlans_list', $aLineData);
-			return;
-		}
-
-		$aLookupVLANLinks = json_decode($aLineData[$iVLANsListFieldPos], true);
-		$aFoundVLANLinks = [];
-		foreach ($aLookupVLANLinks as $iLineIndex => $aVLANLink) {
-			$aVLANLink['vlan_id']['id'] = null;
-			$aVLANLineDataHeaders = array_keys($aVLANLink['vlan_id']);
-			$aVLANLineData = array_values($aVLANLink['vlan_id']);
-
-			if ($iLineIndex === 0) $this->oVLANLookup->Lookup($aVLANLineDataHeaders, ['vlan_tag', 'org_id'], 'id', 0);
-			if ($this->oVLANLookup->Lookup($aVLANLineData, ['vlan_tag', 'org_id'], 'id', $iLineIndex+1)) {
-				$aVLANLink['vlan_id'] = $aVLANLineData[array_search('id', $aVLANLineDataHeaders)];
-				$aFoundVLANLinks[] = $aVLANLink;
-			}
-		}
-
-		// Store results
-		$aLineData[$iVLANsListFieldPos] = static::ImplodeLinkSet($aFoundVLANLinks);
 	}
 
 	/**
