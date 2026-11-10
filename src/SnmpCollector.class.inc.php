@@ -88,7 +88,6 @@ abstract class SnmpCollector extends Collector
 	 */
 	protected function ProcessLinkSetLookup(array &$aLineData, int $iLineIndex, string $sFieldName, LookupTable $oLookup, array $aSearchKeys, string $sLinkKey): void
 	{
-		$this->aCSVHeaders;
 		if ($iLineIndex === 0) {
 			static::$aLinkSetFieldPositions[$sFieldName] = array_search($sFieldName, $aLineData);
 			return;
