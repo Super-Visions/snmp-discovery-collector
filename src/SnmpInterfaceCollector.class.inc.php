@@ -10,6 +10,8 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	protected array $aLookupFieldPos = [];
 	/** @var LookupTable Lookup table for VLAN */
 	protected LookupTable $oVLANLookup;
+	/** @var LookupTable Lookup table for IP addresses */
+	protected LookupTable $oIPLookup;
 
 	/**
 	 * Retrieve and prepare interfaces discovered by {@see SnmpDiscoveryCollector}
@@ -60,6 +62,7 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 	{
 		$this->oDeviceLookup = new LookupTable('SELECT NetworkDevice', static::DeviceLookupFields);
 		$this->oVLANLookup = new LookupTable('SELECT VLAN', ['vlan_tag', 'org_id']);
+		$this->oIPLookup = new LookupTable('SELECT IPAddress', ['friendlyname', 'org_id']);
 	}
 
 	/**
@@ -75,6 +78,9 @@ abstract class SnmpInterfaceCollector extends SnmpCollector
 
 		// Lookup VLANs
 		if ($this->oPlan->GetCollectVLANs()) $this->ProcessLinkSetLookup($aLineData, $iLineIndex, 'vlans_list', $this->oVLANLookup, ['vlan_tag', 'org_id'], 'vlan_id');
+
+		// Lookup IP addresses
+		$this->ProcessLinkSetLookup($aLineData, $iLineIndex, 'ip_list', $this->oIPLookup, ['friendlyname', 'org_id'], 'ipaddress_id');
 	}
 
 	/**

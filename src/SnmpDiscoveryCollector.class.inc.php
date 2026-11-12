@@ -46,6 +46,8 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	 * }> List of discovered VLANs
 	 */
 	public static array $aDiscoveredVLANs = [];
+	/** @var array<string, array{ ip: string, org_id: int }> List of discovered IPs */
+	public static array $aDiscoveredIPAddresses = [];
 	protected static MappingTable $oSysOidBrandMapping;
 	protected static MappingTable $oSysOidModelMapping;
 	protected static MappingTable $oSysDescrBrandMapping;
@@ -71,7 +73,7 @@ class SnmpDiscoveryCollector extends SnmpCollector
 		$this->bDistributed = filter_var(Utils::GetConfigurationValue('amqp_enabled', false), FILTER_VALIDATE_BOOLEAN);
 		if ($this->bDistributed) $this->InitMessageQueue();
 
-		// Initialise the mapping tables used to detect the Brand, Model and IOS Version.
+		// Initialize the mapping tables used to detect the Brand, Model and IOS Version.
 		static::$oSysOidBrandMapping = new MappingTable('sysObjectID_brand_mapping');
 		static::$oSysOidModelMapping = new MappingTable('sysObjectID_model_mapping');
 		static::$oSysDescrBrandMapping = new MappingTable('sysDescr_brand_mapping');
@@ -208,9 +210,10 @@ class SnmpDiscoveryCollector extends SnmpCollector
 	protected function PrepareFetchData(array $aData): array
 	{
 		/**
-		 * Update interface `primary_key` and add fields needed for device lookup
+		 * Update interface `primary_key` and add fields needed for device, VLAN and IP lookup
 		 * @param array $aInterface
 		 * @return array
+		 * @throws Exception
 		 */
 		$cPrepareInterface = function (array $aInterface) use ($aData) {
 			// Map VLANs
@@ -221,6 +224,18 @@ class SnmpDiscoveryCollector extends SnmpCollector
 						'mode' => in_array($aInterface['primary_key'], $aVLAN['untagged_interfaces_list'] ?? []) ? 'untagged' : 'tagged',
 					];
 				$aInterface['vlans_list'] = json_encode($aVLANs ?? []);
+			}
+			// Map IPs
+			if ($this->oPlan->GetCollectIPs()) {
+				foreach ($aData['ip_list'] as $aIPAddress) {
+					if ($aIPAddress['ifIndex'] == $aInterface['primary_key']) {
+						$aIPLinks[] = [
+							'ipaddress_id' => ['friendlyname' => $aIPAddress['ip'], 'org_id' => $aData['org_id']],
+							'ipaddress_ip' => $aIPAddress['ip'],
+						];
+					}
+				}
+				$aInterface['ip_list'] = json_encode($aIPLinks ?? []);
 			}
 			// Prepare primary_key
 			$aInterface['primary_key'] = sprintf('%s - %d', $aData['primary_key'], $aInterface['primary_key']);
@@ -274,7 +289,22 @@ class SnmpDiscoveryCollector extends SnmpCollector
 				unset($aData[$sField]);
 			}
 
-		unset($aData['vlans_list']);
+		// Prepare data for IP collection
+		foreach ($aData['ip_list'] as $aIpAddress) {
+			$sIpKey = sprintf('%s - %d', $aIpAddress['ip'], $aData['org_id']);
+
+			if (!isset(static::$aDiscoveredIPAddresses[$sIpKey])) {
+				static::$aDiscoveredIPAddresses[$sIpKey] = [
+					'ip' => $aIpAddress['ip'],
+					'org_id' => $aData['org_id'],
+				];
+			}
+
+			// Update last discovery date
+			static::$aDiscoveredIPAddresses[$sIpKey]['last_discovery_date'] = $aData['snmp_last_discovery'];
+		}
+
+		unset($aData['vlans_list'], $aData['ip_list']);
 		return $aData;
 	}
 	
@@ -361,14 +391,26 @@ class SnmpDiscoveryCollector extends SnmpCollector
 		$aIPv4Addresses = static::LoadIPAddresses('IPv4Address', sprintf(<<<SQL
 SELECT IPv4Address AS a
 	JOIN IPv4Subnet AS s ON a.subnet_id = s.id
-WHERE s.snmpdiscovery_id = %d AND a.status != 'reserved'
+WHERE s.snmpdiscovery_id = %1\$d AND a.status != 'reserved' AND a.id NOT IN (
+	SELECT IPAddress AS ip JOIN lnkIPInterfaceToIPAddress AS lnk ON lnk.ipaddress_id = ip.id
+)
+UNION SELECT IPv4Address AS a
+	JOIN IPv4Subnet AS s ON a.subnet_id = s.id
+	JOIN NetworkDevice AS d ON d.managementip_id = a.id
+WHERE s.snmpdiscovery_id = %1\$d AND a.status != 'reserved'
 SQL, $this->oPlan->GetApplicationID()));
 		
 		// Load IPv6 addresses to discover
 		$aIPv6Addresses = static::LoadIPAddresses('IPv6Address', sprintf(<<<SQL
 SELECT IPv6Address AS a
 	JOIN IPv6Subnet AS s ON a.subnet_id = s.id
-WHERE s.snmpdiscovery_id = %d AND a.status != 'reserved'
+WHERE s.snmpdiscovery_id = %1\$d AND a.status != 'reserved' AND a.id NOT IN (
+	SELECT IPAddress AS ip JOIN lnkIPInterfaceToIPAddress AS lnk ON lnk.ipaddress_id = ip.id
+)
+UNION SELECT IPv6Address AS a
+	JOIN IPv6Subnet AS s ON a.subnet_id = s.id
+	JOIN NetworkDevice AS d ON d.managementip_id = a.id
+WHERE s.snmpdiscovery_id = %1\$d AND a.status != 'reserved'
 SQL, $this->oPlan->GetApplicationID()));
 		
 		$this->aIPAddresses = $aIPv4Addresses + $aIPv6Addresses;
@@ -395,7 +437,7 @@ SQL, $this->oPlan->GetApplicationID()));
 			if (empty($aAdditionalDevices)) return;
 			
 			// Also load IP addresses for additional devices
-			$sAdditionalIPs = implode(',', array_map(function ($aDevice) { return $aDevice['managementip_id']; }, $aAdditionalDevices));
+			$sAdditionalIPs = implode(',', array_column($aAdditionalDevices, 'managementip_id'));
 			$aIPv4Addresses = static::LoadIPAddresses('IPv4Address', sprintf( /** @lang SQL */ 'SELECT IPv4Address WHERE id IN(%s)', $sAdditionalIPs));
 			$aIPv6Addresses = static::LoadIPAddresses('IPv6Address', sprintf( /** @lang SQL */ 'SELECT IPv6Address WHERE id IN(%s)', $sAdditionalIPs));
 			
@@ -593,6 +635,9 @@ SQL, $this->oPlan->GetApplicationID()));
 	 *     snmp_syslocation: string,
 	 *     snmp_syscontact: string,
 	 *     snmp_sysuptime: int,
+	 *     contacts_list: string,
+	 *     vlans_list: array,
+	 *     ip_list: array,
 	 *     physicalinterface_list: array,
 	 *     networkdevicevirtualinterfaces_list: array,
 	 *     aggregatelinks_list: array,
@@ -711,6 +756,7 @@ SQL, $this->oPlan->GetApplicationID()));
 					'snmp_sysuptime' => (int) round($sSysUptime/100),
 					'contacts_list' => json_encode($aContacts),
 					'vlans_list' => VlanCollector::CollectVLANs($oSNMP, $sysObjectID),
+					'ip_list' => SnmpIPAddressCollector::CollectAddresses($oSNMP),
 				] + SnmpInterfaceCollector::CollectInterfaces($oSNMP);
 			}
 		}
