@@ -238,6 +238,7 @@
             "update": "1",
             "reconcile": "0",
             "update_policy": "master_locked",
+            "import_columns": "snmp_syscontact",
             "finalclass": "SynchroAttribute"
         },
         {
@@ -245,6 +246,7 @@
             "update": "1",
             "reconcile": "0",
             "update_policy": "master_locked",
+            "import_columns": "snmp_sysdescr",
             "finalclass": "SynchroAttribute"
         },
         {
@@ -252,6 +254,7 @@
             "update": "1",
             "reconcile": "0",
             "update_policy": "master_locked",
+            "import_columns": "snmp_syslocation",
             "finalclass": "SynchroAttribute"
         },
         {
@@ -259,6 +262,7 @@
             "update": "1",
             "reconcile": "0",
             "update_policy": "master_locked",
+            "import_columns": "snmp_sysname",
             "finalclass": "SynchroAttribute"
         },
         {
@@ -266,6 +270,7 @@
             "update": "1",
             "reconcile": "0",
             "update_policy": "master_locked",
+            "import_columns": "snmp_sysuptime",
             "finalclass": "SynchroAttribute"
         },
         {
