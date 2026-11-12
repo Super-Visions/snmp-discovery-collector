@@ -73,7 +73,7 @@ class SnmpDiscoveryCollector extends SnmpCollector
 		$this->bDistributed = filter_var(Utils::GetConfigurationValue('amqp_enabled', false), FILTER_VALIDATE_BOOLEAN);
 		if ($this->bDistributed) $this->InitMessageQueue();
 
-		// Initialise the mapping tables used to detect the Brand, Model and IOS Version.
+		// Initialize the mapping tables used to detect the Brand, Model and IOS Version.
 		static::$oSysOidBrandMapping = new MappingTable('sysObjectID_brand_mapping');
 		static::$oSysOidModelMapping = new MappingTable('sysObjectID_model_mapping');
 		static::$oSysDescrBrandMapping = new MappingTable('sysDescr_brand_mapping');
@@ -635,6 +635,9 @@ SQL, $this->oPlan->GetApplicationID()));
 	 *     snmp_syslocation: string,
 	 *     snmp_syscontact: string,
 	 *     snmp_sysuptime: int,
+	 *     contacts_list: string,
+	 *     vlans_list: array,
+	 *     ip_list: array,
 	 *     physicalinterface_list: array,
 	 *     networkdevicevirtualinterfaces_list: array,
 	 *     aggregatelinks_list: array,
