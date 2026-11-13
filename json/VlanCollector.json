@@ -1,6 +1,6 @@
 {
   "name": "SNMP VLAN Discovery - $uuid$",
-  "description": "",
+  "description": "SNMP Discovery v$version$",
   "status": "$synchro_status$",
   "user_id": "$synchro_user$",
   "notify_contact_id": "$contact_to_notify$",
@@ -16,6 +16,17 @@
   "delete_policy_update": "status:unused",
   "delete_policy_retention": "0",
   "attribute_list": [
+    {
+      "attcode": "aggregatelinks_list",
+      "update": "0",
+      "reconcile": "0",
+      "update_policy": "master_locked",
+      "row_separator": "|",
+      "attribute_separator": ";",
+      "value_separator": ":",
+      "attribute_qualifier": "'",
+      "finalclass": "SynchroAttLinkSet"
+    },
     {
       "attcode": "description",
       "update": "0",

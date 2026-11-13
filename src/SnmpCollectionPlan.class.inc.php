@@ -25,7 +25,7 @@ class SnmpCollectionPlan extends CollectionPlan
 	public function Init(): void
 	{
 		// Check if modules are installed
-		Utils::CheckModuleInstallation('sv-snmp-discovery/1.3.0', true);
+		Utils::CheckModuleInstallation('sv-snmp-discovery/1.4.0', true);
 
 		// Load SNMP discovery application settings
 		$this->LoadApplicationSettings();
