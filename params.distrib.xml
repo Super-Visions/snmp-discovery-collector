@@ -125,6 +125,8 @@
 
 	<sysObjectID_model_mapping type="array">
 		<pattern>/CISCO-PRODUCTS-MIB::cisco(UCSX?E?)(\w+)(M\d+)(?:Rackserver)?$/%2$s %3$s %4$s</pattern>
+		<pattern>/CISCO-PRODUCTS-MIB::ciscoIseVm(\w+)$/ISE VM %2$s</pattern>
+		<pattern>/CISCO-PRODUCTS-MIB::ciscoIse(\d+)(\w+)$/ISE %2$s %3$s</pattern>
 		<pattern>/HUAWEI-MIB::atn([^.]+)/ATN %2$s</pattern>
 		<pattern>/FORTINET-FORTIGATE-MIB::fgt(\w+)/FortiGate %2$s</pattern>
 		<pattern>/JUNIPER-CHASSIS-DEFINES-MIB::jnxProductNameJNP(10003|204)/MX %2$s</pattern>
