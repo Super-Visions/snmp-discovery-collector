@@ -130,7 +130,9 @@
 		<pattern>/HUAWEI-MIB::atn([^.]+)/ATN %2$s</pattern>
 		<pattern>/FORTINET-FORTIGATE-MIB::fgt(\w+)/FortiGate %2$s</pattern>
 		<pattern>/JUNIPER-CHASSIS-DEFINES-MIB::jnxProductNameJNP(10003|204)/MX %2$s</pattern>
-		<pattern>/JUNIPER-CHASSIS-DEFINES-MIB::jnxProduct(?:Name)?(\D+)(\d+)/%2$s %3$s</pattern>
+		<pattern>/JUNIPER-CHASSIS-DEFINES-MIB::jnxProductName([A-Z]+)(\d+\w*)$/%2$s %3$s</pattern>
+		<pattern>/JUNIPER-CHASSIS-DEFINES-MIB::jnxProductName(\w+)$/%2$s</pattern>
+		<pattern>/JUNIPER-CHASSIS-DEFINES-MIB::jnxProduct([A-Z]+)(\d+)/%2$s %3$s</pattern>
 		<pattern>/ACS8000-MIB::acs(\d+)/Avocent ACS %2$s</pattern>
 		<pattern>/ARISTA-PRODUCTS-MIB::arista(\w+)$/%2$s</pattern>
 		<pattern>/F5-BIGIP-SYSTEM-MIB::bigipVcmpGuest$/BIG-IP vCMP Guest</pattern>
@@ -174,6 +176,7 @@
 		<pattern>/(BIG-IP software release \S+), build/%2$s</pattern>
 		<pattern>/^(Peakflow SP \S+) \(build .*\)/%2$s</pattern>
 		<pattern>/^Ivanti Inc\.,Ivanti (.+),.+,(\d+\.\d+R\d+\.\d+)/%2$s %3$s</pattern>
+		<pattern>/(JUNOS \S+), Build/%2$s</pattern>
 	</sysDescr_version_mapping>
 
 	<sysContact_mapping type="array">
